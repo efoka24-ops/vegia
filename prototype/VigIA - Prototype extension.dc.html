@@ -95,7 +95,10 @@
                       <span style="font-size:15px;font-weight:700;color:#C8102E;">{{ fbAlertsWord }} détectée(s)</span>
                     </div>
                   </sc-if>
-                  <sc-if value="{{ fbNoneDone }}" hint-placeholder-val="{{ true }}">
+                  <sc-if value="{{ fbScanning }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="width:14px;height:14px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span><span style="font-size:15px;font-weight:700;color:#0A5C42;">Analyse en cours…</span></div>
+                  </sc-if>
+                  <sc-if value="{{ fbIdle }}" hint-placeholder-val="{{ true }}">
                     <div style="font-size:16px;font-weight:700;color:#11201A;margin-top:6px;">Prêt à analyser cette page.</div>
                   </sc-if>
                   <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;">
@@ -103,7 +106,8 @@
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Média</span>
                       <span style="font-size:12px;color:#65676B;flex:1;">Manipulation IA</span>
                       <sc-if value="{{ fbMediaDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ 82%</span></sc-if>
-                      <sc-if value="{{ fbMediaNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                      <sc-if value="{{ fbMediaScanning }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span></sc-if>
+                      <sc-if value="{{ fbMediaIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ scanFbMedia }}" style="background:#0A5C42;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">Vérifier</button></sc-if>
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Info</span>
@@ -114,13 +118,15 @@
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Lien</span>
                       <span style="font-size:12px;color:#65676B;flex:1;">Phishing / arnaque</span>
                       <sc-if value="{{ fbLinkDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ arnaque</span></sc-if>
-                      <sc-if value="{{ fbLinkNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                      <sc-if value="{{ fbLinkScanning }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span></sc-if>
+                      <sc-if value="{{ fbLinkIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ scanFbLink }}" style="background:#0A5C42;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">Vérifier</button></sc-if>
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Compte</span>
                       <span style="font-size:12px;color:#65676B;flex:1;">Compte officiel</span>
                       <sc-if value="{{ fbAccountDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ non vérifié</span></sc-if>
-                      <sc-if value="{{ fbAccountNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                      <sc-if value="{{ fbAccountScanning }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span></sc-if>
+                      <sc-if value="{{ fbAccountIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ scanFbAccount }}" style="background:#0A5C42;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">Vérifier</button></sc-if>
                     </div>
                   </div>
                   <button onClick="{{ scanFbAll }}" style="width:100%;margin-top:14px;background:#0A5C42;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">Tout vérifier sur cette page</button>
@@ -314,7 +320,10 @@
                       <span style="font-size:15px;font-weight:700;color:#C8102E;">{{ liAlertsWord }} détectée(s)</span>
                     </div>
                   </sc-if>
-                  <sc-if value="{{ liNoneDone }}" hint-placeholder-val="{{ true }}">
+                  <sc-if value="{{ liScanning }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="width:14px;height:14px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span><span style="font-size:15px;font-weight:700;color:#0A5C42;">Analyse en cours…</span></div>
+                  </sc-if>
+                  <sc-if value="{{ liIdle }}" hint-placeholder-val="{{ true }}">
                     <div style="font-size:16px;font-weight:700;color:#11201A;margin-top:6px;">Prêt à analyser cette page.</div>
                   </sc-if>
                   <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;">
@@ -322,7 +331,8 @@
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Média</span>
                       <span style="font-size:12px;color:#65676B;flex:1;">Manipulation IA</span>
                       <sc-if value="{{ liMediaDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ 78%</span></sc-if>
-                      <sc-if value="{{ liMediaNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                      <sc-if value="{{ liMediaScanning }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span></sc-if>
+                      <sc-if value="{{ liMediaIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ scanLiMedia }}" style="background:#0A5C42;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">Vérifier</button></sc-if>
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Info</span>
@@ -333,13 +343,15 @@
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Lien</span>
                       <span style="font-size:12px;color:#65676B;flex:1;">Arnaque / scam</span>
                       <sc-if value="{{ liLinkDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ scam</span></sc-if>
-                      <sc-if value="{{ liLinkNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                      <sc-if value="{{ liLinkScanning }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span></sc-if>
+                      <sc-if value="{{ liLinkIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ scanLiLink }}" style="background:#0A5C42;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">Vérifier</button></sc-if>
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
                       <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Compte</span>
                       <span style="font-size:12px;color:#65676B;flex:1;">Compte officiel</span>
                       <sc-if value="{{ liAccountDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ usurpation</span></sc-if>
-                      <sc-if value="{{ liAccountNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                      <sc-if value="{{ liAccountScanning }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span></sc-if>
+                      <sc-if value="{{ liAccountIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ scanLiAccount }}" style="background:#0A5C42;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">Vérifier</button></sc-if>
                     </div>
                   </div>
                   <button onClick="{{ scanLiAll }}" style="width:100%;margin-top:14px;background:#0A5C42;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">Tout vérifier sur cette page</button>
@@ -514,7 +526,9 @@ class Component extends DCLogic {
       fbLinkIdle:  s.fbLink  === 'idle', fbLinkScanning:  s.fbLink  === 'scanning', fbLinkDone:  s.fbLink  === 'done', fbLinkNotDone:  s.fbLink  !== 'done',
       fbAccountIdle: s.fbAccount === 'idle', fbAccountScanning: s.fbAccount === 'scanning', fbAccountDone: s.fbAccount === 'done', fbAccountNotDone: s.fbAccount !== 'done',
       fbAlerts, fbAlertsWord: fbAlerts > 1 ? 'alertes' : 'alerte',
-      fbAnyDone: fbAlerts > 0, fbNoneDone: fbAlerts === 0,
+      fbAnyDone: fbAlerts > 0,
+      fbScanning: fbAlerts === 0 && ['fbMedia', 'fbLink', 'fbAccount'].some(k => s[k] === 'scanning'),
+      fbIdle:     fbAlerts === 0 && ['fbMedia', 'fbLink', 'fbAccount'].every(k => s[k] === 'idle'),
 
       // ── LinkedIn ──────────────────────────────────────────────────
       liPopup: s.liPopup,
@@ -529,7 +543,9 @@ class Component extends DCLogic {
       liLinkIdle:  s.liLink  === 'idle', liLinkScanning:  s.liLink  === 'scanning', liLinkDone:  s.liLink  === 'done', liLinkNotDone:  s.liLink  !== 'done',
       liAccountIdle: s.liAccount === 'idle', liAccountScanning: s.liAccount === 'scanning', liAccountDone: s.liAccount === 'done', liAccountNotDone: s.liAccount !== 'done',
       liAlerts, liAlertsWord: liAlerts > 1 ? 'alertes' : 'alerte',
-      liAnyDone: liAlerts > 0, liNoneDone: liAlerts === 0,
+      liAnyDone: liAlerts > 0,
+      liScanning: liAlerts === 0 && ['liMedia', 'liLink', 'liAccount'].some(k => s[k] === 'scanning'),
+      liIdle:     liAlerts === 0 && ['liMedia', 'liLink', 'liAccount'].every(k => s[k] === 'idle'),
     };
   }
 }
