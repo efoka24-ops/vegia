@@ -16,7 +16,7 @@ const MOCK_RESULTS = {
 const MOCK_DELAYS = { media: 1800, info: 1400, link: 1000, account: 1600 };
 
 // popup mod → content script context
-const MOD_TO_CTX = { media: 'videos', info: 'posts', link: 'links', account: 'profiles' };
+const MOD_TO_CTX = { media: 'video', info: 'text', link: 'link', account: 'account' };
 
 const SUPPORTED_HOSTS = ['facebook.com', 'twitter.com', 'x.com', 'linkedin.com', 'web.whatsapp.com'];
 

@@ -9,162 +9,98 @@ const SITE = (() => {
   return null;
 })();
 
-if (!SITE) { /* site non supporté - arrêt silencieux */ }
+if (!SITE) { /* site non supporté — arrêt silencieux */ }
 
-// ── Sélecteurs par site ────────────────────────────────────────
+// ── Sélecteurs : UN conteneur par post ────────────────────────
 
-const SELECTORS = {
-  facebook: {
-    // Posts : fallbacks pour www + web.facebook.com
-    posts: [
-      'div[data-pagelet^="FeedUnit"]',   // www.facebook.com
-      'div[role="article"]',             // www.facebook.com
-      'div[aria-posinset]',              // www.facebook.com
-      'div.userContentWrapper',          // web.facebook.com
-      'div._5pcr',                       // web.facebook.com (classique)
-      'div[data-testid="fbfeed_story"]', // web.facebook.com
-    ],
-    videos:   ['video'],
-    links:    ['a[href*="l.facebook.com/l.php"]', 'a[href*="bit.ly"]', 'a[href*=".xyz"]'],
-    profiles: [
-      'a[href*="profile.php"] img',
-      'h2 a[href*="facebook.com"]',
-      'h1',  // page de profil : le h1 est le nom du compte
-    ],
-    // Sélecteur text pour SCAN_PAGE
-    textNodes: [
-      'div[dir="auto"]',       // www.facebook.com
-      'div[data-ad-comet-preview="message"]',
-      'span._5yl5',            // web.facebook.com
-      'div.userContent p',     // web.facebook.com
-      'p',                     // fallback générique
-    ],
-  },
-  twitter: {
-    posts:     ['article[data-testid="tweet"]', 'article'],
-    videos:    ['video'],
-    links:     ['a[href*="t.co"]'],
-    profiles:  ['a[href$="/photo"] img'],
-    textNodes: ['[data-testid="tweetText"]'],
-  },
-  whatsapp: {
-    posts:     ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
-    videos:    ['video'],
-    links:     ['a[href*="http"]'],
-    profiles:  ['img[src*="pps.whatsapp"]'],
-    textNodes: ['span.selectable-text'],
-  },
-  linkedin: {
-    posts:     ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
-    videos:    ['video'],
-    links:     ['a.feed-shared-article__title', 'a[href*="/pulse/"]'],
-    profiles:  ['img.EntityPhoto-circle-3', 'img.presence-entity__image'],
-    textNodes: ['.feed-shared-text .break-words', 'span.break-words'],
-  },
+// On cible le conteneur de post entier, pas les sous-éléments.
+// Un seul bouton sera injecté par conteneur.
+const POST_SELECTORS = {
+  facebook: [
+    'div[role="article"]',
+    'div[data-pagelet^="FeedUnit"]',
+    'div[aria-posinset]',
+    'div.userContentWrapper',   // web.facebook.com
+    'div._5pcr',                // web.facebook.com classique
+  ],
+  twitter:  ['article[data-testid="tweet"]', 'article'],
+  whatsapp: ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
+  linkedin: ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
 };
 
+// Labels selon le type de contenu détecté dans le post
 const CTX_LABELS = {
-  posts:    'Vérifier ce texte avec VigIA',
-  videos:   'Vérifier cette vidéo avec VigIA',
-  links:    'Vérifier ce lien avec VigIA',
-  profiles: 'Vérifier ce compte avec VigIA',
+  video:   'Vérifier cette vidéo avec VigIA',
+  text:    'Vérifier cette information avec VigIA',
+  link:    'Vérifier ce lien avec VigIA',
+  account: 'Vérifier ce compte avec VigIA',
 };
 
 const CTX_MODULE = {
-  posts:    'VÉRIF-INFO',
-  videos:   'VÉRIF-MÉDIA',
-  links:    'VÉRIF-LIEN',
-  profiles: 'VÉRIF-COMPTE',
+  video:   'VÉRIF-MÉDIA',
+  text:    'VÉRIF-INFO',
+  link:    'VÉRIF-LIEN',
+  account: 'VÉRIF-COMPTE',
 };
 
 const CTX_TO_MOD = {
-  posts: 'info', videos: 'media', links: 'link', profiles: 'account',
+  video: 'media', text: 'info', link: 'link', account: 'account',
 };
 
-const SHIELD_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;display:block"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SHIELD_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-// ── Lecture de la page (fiable, sans sélecteurs complexes) ─────
+// ── Détection du type de contenu dans un post ─────────────────
 
-function getPageSummary() {
-  const cfg = SELECTORS[SITE] || {};
+function detectContext(postEl) {
+  // Priorité : vidéo > lien suspect > texte
+  if (postEl.querySelector('video')) return 'video';
 
-  // Texte : prendre les premiers nœuds texte significatifs
-  const textEls = queryAny(cfg.textNodes || []);
-  const text = textEls
-    .map(el => el.innerText?.trim())
-    .filter(t => t && t.length > 20)
-    .slice(0, 6)
-    .join('\n\n')
-    .slice(0, 2000);
+  const link = postEl.querySelector(
+    'a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*=".xyz"], a[href*="t.co"]'
+  );
+  if (link) return 'link';
 
-  // Vidéos / images media
-  const videos   = document.querySelectorAll('video').length;
-  const feedImgs = document.querySelectorAll(
-    'img[src*="fbcdn"], img[src*="scontent"], img[src*="licdn"], img[src*="twimg"]'
-  ).length;
-  const hasMedia = videos > 0 || feedImgs > 3;
+  const textEl = postEl.querySelector(
+    'div[dir="auto"], [data-testid="tweetText"], .break-words, span.selectable-text, p'
+  );
+  if (textEl?.innerText?.trim().length > 20) return 'text';
 
-  // Liens suspects
-  const suspLinks     = queryAny(cfg.links || []);
-  const firstSuspLink = suspLinks[0]?.href || '';
-
-  // Nom de profil — essayer plusieurs sources
-  const profileName = [
-    document.querySelector('h1'),
-    document.querySelector('[data-pagelet="ProfileTilesFeed"] h2'),
-    document.querySelector('h2'),
-    document.querySelector('#fb-timeline-cover-name'),       // web.facebook.com
-    document.querySelector('[id="pageTitle"]'),              // web.facebook.com
-    document.querySelector('._2yap, ._19bm, .actor-name'),  // web.facebook.com classique
-  ]
-    .map(el => el?.innerText?.trim())
-    .find(t => t && t.length > 1) || '';
-
-  // URL de profil : si c'est une page utilisateur, extraire le slug
-  const slug = location.pathname.replace(/^\//, '').split('?')[0] || '';
-
-  return {
-    text,
-    hasMedia,
-    hasSuspLinks: suspLinks.length > 0,
-    firstSuspLink,
-    profileName: profileName || slug,  // fallback sur le slug URL
-  };
+  return null; // pas de contenu analysable
 }
 
-// ── Injection des boutons contextuels ─────────────────────────
-
-function queryAny(selectors) {
-  for (const sel of selectors) {
-    try {
-      const els = Array.from(document.querySelectorAll(sel));
-      if (els.length) return els;
-    } catch (_) {}
-  }
-  return [];
-}
+// ── Injection : UN bouton par post ─────────────────────────────
 
 function injectButtons() {
   if (!SITE) return;
-  const cfg = SELECTORS[SITE];
 
-  // Posts / articles
-  const postEls = queryAny(cfg.posts || []);
-  postEls.slice(0, 10).forEach(el => attachButton(el, 'posts'));
+  const selectors = POST_SELECTORS[SITE] || [];
 
-  // Vidéos
-  document.querySelectorAll('video').forEach(el => attachButton(el, 'videos'));
+  // Chercher les conteneurs de post dans l'ordre de priorité
+  let posts = [];
+  for (const sel of selectors) {
+    try {
+      const els = Array.from(document.querySelectorAll(sel));
+      if (els.length) { posts = els; break; }
+    } catch (_) {}
+  }
 
-  // Liens
-  queryAny(cfg.links || []).slice(0, 5).forEach(el => attachButton(el, 'links'));
+  posts.slice(0, 20).forEach(attachOneButton);
 
-  // Profils
-  queryAny(cfg.profiles || []).slice(0, 3).forEach(el => attachButton(el, 'profiles'));
+  // Page de profil : ajouter un bouton "Vérifier ce compte"
+  injectProfileButton();
 }
 
-function attachButton(element, context) {
-  if (!element || element.dataset.vigiaOk) return;
-  element.dataset.vigiaOk = '1';
+function attachOneButton(postEl) {
+  if (postEl.dataset.vigiaOk) return;
+
+  const context = detectContext(postEl);
+  if (!context) {
+    // Marquer quand même pour ne pas ré-essayer à chaque mutation
+    postEl.dataset.vigiaOk = 'skip';
+    return;
+  }
+
+  postEl.dataset.vigiaOk = '1';
 
   const cta = document.createElement('div');
   cta.className = 'vigia-cta';
@@ -172,65 +108,148 @@ function attachButton(element, context) {
 
   const btn = document.createElement('button');
   btn.className = 'vigia-btn';
-  btn.innerHTML = `${SHIELD_SVG}${CTX_LABELS[context] || 'Vérifier avec VigIA'}`;
+  btn.innerHTML = `${SHIELD_SVG}${CTX_LABELS[context]}`;
   btn.addEventListener('click', e => {
     e.stopPropagation();
     e.preventDefault();
-    triggerAnalysis(element, context, cta);
+    triggerAnalysis(postEl, context, cta);
   });
 
   cta.appendChild(btn);
 
-  // Toujours insérer APRÈS l'élément (pas dedans) pour éviter que React le retire
-  try { element.insertAdjacentElement('afterend', cta); } catch (_) {}
+  // Insérer à la FIN du post (comme un footer natif)
+  // On utilise appendChild : le bouton s'ajoute après tout le contenu du post
+  try {
+    postEl.appendChild(cta);
+  } catch (_) {
+    try { postEl.insertAdjacentElement('afterend', cta); } catch (__) {}
+  }
 }
 
-// ── Analyse d'un élément individuel ───────────────────────────
+// ── Bouton "Vérifier ce compte" sur page de profil ─────────────
 
-function triggerAnalysis(element, context, cta) {
-  const payload = buildPayload(element, context);
+function injectProfileButton() {
+  // Détecte si on est sur une page de profil (URL = /pseudo ou /profile.php)
+  const isProfilePage =
+    /^\/(?!groups|pages|watch|events|marketplace|gaming)[^/?#]+\/?$/.test(location.pathname) ||
+    location.pathname.includes('/profile.php');
+
+  if (!isProfilePage) return;
+
+  const profileZone = document.querySelector(
+    'h1, [id*="profile"], [data-pagelet="ProfileTilesFeed"], .profileTimeline, #timeline'
+  );
+  if (!profileZone || profileZone.dataset.vigiaProfileOk) return;
+  profileZone.dataset.vigiaProfileOk = '1';
+
+  const cta = document.createElement('div');
+  cta.className = 'vigia-cta vigia-cta--profile';
+  cta.dataset.vigiaContext = 'account';
+
+  const btn = document.createElement('button');
+  btn.className = 'vigia-btn';
+  btn.innerHTML = `${SHIELD_SVG}${CTX_LABELS.account}`;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    triggerAnalysis(profileZone, 'account', cta);
+  });
+
+  cta.appendChild(btn);
+
+  // Insérer après la zone de profil
+  try { profileZone.insertAdjacentElement('afterend', cta); } catch (_) {}
+}
+
+// ── Lecture de la page (pour popup "Tout vérifier") ────────────
+
+function getPageSummary() {
+  // Texte des posts
+  const textEls = Array.from(document.querySelectorAll(
+    'div[dir="auto"], [data-testid="tweetText"], .break-words, span.selectable-text, p'
+  ));
+  const text = textEls
+    .map(el => el.innerText?.trim())
+    .filter(t => t && t.length > 20)
+    .slice(0, 6)
+    .join('\n\n')
+    .slice(0, 2000);
+
+  const hasMedia = document.querySelectorAll('video').length > 0
+    || document.querySelectorAll('img[src*="fbcdn"], img[src*="scontent"], img[src*="licdn"]').length > 3;
+
+  const suspLinks = Array.from(document.querySelectorAll(
+    'a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*=".xyz"], a[href*="t.co"]'
+  ));
+  const firstSuspLink = suspLinks[0]?.href || '';
+
+  const profileName = [
+    document.querySelector('h1'),
+    document.querySelector('h2'),
+    document.querySelector('#fb-timeline-cover-name'),
+    document.querySelector('._2yap'),
+  ].map(el => el?.innerText?.trim()).find(t => t && t.length > 1) || '';
+
+  const slug = location.pathname.replace(/^\//, '').split('/')[0].split('?')[0];
+
+  return {
+    text,
+    hasMedia,
+    hasSuspLinks: suspLinks.length > 0,
+    firstSuspLink,
+    profileName: profileName || slug,
+  };
+}
+
+// ── Analyse d'un post ──────────────────────────────────────────
+
+function triggerAnalysis(postEl, context, cta) {
+  const payload = buildPayload(postEl, context);
   if (!payload) { setCtaError(cta, 'Contenu non lisible.'); return; }
 
   setCtaLoading(cta);
 
   chrome.runtime.sendMessage({ type: 'VERIFY', payload }, result => {
-    if (chrome.runtime.lastError || !result) { setCtaError(cta, 'Erreur d\'analyse.'); return; }
+    if (chrome.runtime.lastError || !result) {
+      setCtaError(cta, 'Erreur d\'analyse.');
+      return;
+    }
     renderResult(cta, result, context);
     notifyPopup(context, result);
   });
 }
 
-function buildPayload(element, context) {
-  const tag = element.tagName;
+function buildPayload(postEl, context) {
+  if (context === 'video') {
+    const vid = postEl.querySelector('video');
+    const src = vid?.src || vid?.querySelector('source')?.src || location.href;
+    return { type: 'image', content: { image_url: src }, source: SITE, cacheKey: `vid:${simpleHash(src)}` };
+  }
 
-  if (context === 'posts') {
-    const textEl = element.querySelector('div[dir="auto"], p, span') || element;
-    const text   = textEl.innerText?.trim() || element.innerText?.trim();
+  if (context === 'link') {
+    const a = postEl.querySelector('a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*="t.co"]');
+    if (!a) return null;
+    return { type: 'url', content: { url: a.href }, source: SITE, cacheKey: `url:${a.href}` };
+  }
+
+  if (context === 'text') {
+    const textEl = postEl.querySelector('div[dir="auto"], [data-testid="tweetText"], .break-words, p') || postEl;
+    const text = textEl.innerText?.trim();
     if (!text || text.length < 15) return null;
     return { type: 'text', content: { text: text.slice(0, 1000) }, source: SITE, cacheKey: `txt:${simpleHash(text)}` };
   }
 
-  if (context === 'videos') {
-    const src = element.src || element.querySelector('source')?.src || location.href;
-    return { type: 'image', content: { image_url: src }, source: SITE, cacheKey: `vid:${simpleHash(src)}` };
-  }
-
-  if (context === 'links' && tag === 'A') {
-    return { type: 'url', content: { url: element.href }, source: SITE, cacheKey: `url:${element.href}` };
-  }
-
-  if (context === 'profiles') {
-    const name = tag === 'IMG'
-      ? (element.closest('a')?.getAttribute('aria-label') || element.alt || '')
-      : (element.innerText?.trim() || '');
-    const imgUrl = tag === 'IMG' ? element.src : '';
-    return { type: 'account', content: { profile_name: name, profile_image_url: imgUrl }, source: SITE, cacheKey: `acc:${simpleHash(name)}` };
+  if (context === 'account') {
+    const name = postEl.querySelector('h1, h2')?.innerText?.trim()
+      || postEl.getAttribute('aria-label')
+      || location.pathname.replace(/^\//, '').split('/')[0];
+    return { type: 'account', content: { profile_name: name, profile_image_url: '' }, source: SITE, cacheKey: `acc:${simpleHash(name)}` };
   }
 
   return null;
 }
 
-// ── Notification popup ─────────────────────────────────────────
+// ── Notification du popup ──────────────────────────────────────
 
 function notifyPopup(context, result) {
   const mod   = CTX_TO_MOD[context];
@@ -257,7 +276,7 @@ function setCtaLoading(cta) {
 }
 
 function setCtaError(cta, msg) {
-  cta.innerHTML = `<div class="vigia-error">${msg || 'Erreur.'}</div>`;
+  cta.innerHTML = `<div class="vigia-error">${msg}</div>`;
 }
 
 function renderResult(cta, result, context) {
@@ -267,7 +286,7 @@ function renderResult(cta, result, context) {
   const mod    = Object.values(mods)[0];
   const score  = mod?.score != null ? Math.round(mod.score * 100) : null;
   const label  = mod?.label || result.explanation || '—';
-  const detail = (result.explanation && result.explanation !== mod?.label) ? result.explanation : '';
+  const detail = result.explanation && result.explanation !== mod?.label ? result.explanation : '';
   const icons  = { red: '⚠️', orange: '⚠️', green: '✅', error: '❓' };
 
   cta.innerHTML = `
@@ -293,40 +312,30 @@ function renderResult(cta, result, context) {
 // ── Listener messages du popup ─────────────────────────────────
 
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
-
-  // SCAN_PAGE : lire la page sans dépendre des sélecteurs d'injection
   if (msg.type === 'SCAN_PAGE') {
-    try {
-      sendResponse({ ok: true, site: SITE, ...getPageSummary() });
-    } catch (e) {
-      sendResponse({ ok: false, error: String(e) });
-    }
+    try { sendResponse({ ok: true, site: SITE, ...getPageSummary() }); }
+    catch (e) { sendResponse({ ok: false, error: String(e) }); }
     return false;
   }
 
-  // SCAN_ALL : injecter les boutons puis les cliquer
   if (msg.type === 'SCAN_ALL') {
     try { injectButtons(); } catch (_) {}
     setTimeout(() => {
       const btns = Array.from(document.querySelectorAll('.vigia-btn'));
-      btns.forEach(btn => { try { btn.click(); } catch (_) {} });
+      btns.forEach(b => { try { b.click(); } catch (_) {} });
       sendResponse({ ok: true, found: btns.length });
-    }, 400);
+    }, 500);
     return true;
   }
 
-  // SCAN_MODULE : cliquer les boutons d'un type précis
   if (msg.type === 'SCAN_MODULE') {
+    // Pour les boutons individuels du popup, cliquer les boutons du bon contexte
     const { context } = msg;
-    try {
-      const cfg = SELECTORS[SITE] || {};
-      queryAny(cfg[context] || []).forEach(el => {
-        if (!el.dataset.vigiaOk) attachButton(el, context);
-      });
-    } catch (_) {}
+    const ctxMap = { media: 'video', info: 'text', link: 'link', account: 'account' };
+    const wantedCtx = ctxMap[context] || context;
     setTimeout(() => {
-      const ctas = document.querySelectorAll(`.vigia-cta[data-vigia-context="${context}"]`);
-      let found  = 0;
+      const ctas = document.querySelectorAll(`.vigia-cta[data-vigia-context="${wantedCtx}"]`);
+      let found = 0;
       ctas.forEach(cta => {
         const btn = cta.querySelector('.vigia-btn');
         if (btn) { btn.click(); found++; }
@@ -337,20 +346,23 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   }
 });
 
-// ── MutationObserver pour scroll infini ───────────────────────
+// ── MutationObserver + démarrage ──────────────────────────────
 
 if (SITE) {
-  const mo = new MutationObserver(() => {
-    try { injectButtons(); } catch (_) {}
-  });
-  mo.observe(document.body, { childList: true, subtree: true });
-
-  // Premier scan après chargement
+  // Injecter les boutons au chargement
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { try { injectButtons(); } catch (_) {} });
   } else {
     try { injectButtons(); } catch (_) {}
   }
+
+  // Ré-injecter quand de nouveaux posts sont chargés (scroll infini)
+  let injectTimer = null;
+  const mo = new MutationObserver(() => {
+    clearTimeout(injectTimer);
+    injectTimer = setTimeout(() => { try { injectButtons(); } catch (_) {} }, 600);
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
 }
 
 // ── Utilitaires ───────────────────────────────────────────────
