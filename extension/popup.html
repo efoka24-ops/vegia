@@ -5,311 +5,278 @@
   <title>VigIA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --green: #0A5C42;
-      --yellow: #F2B705;
-      --red: #C8102E;
-      --bg: #F0F2F5;
-      --font: 'Libre Franklin', -apple-system, sans-serif;
-      --display: 'Bricolage Grotesque', sans-serif;
-    }
+
     body {
       width: 360px;
-      font-family: var(--font);
+      font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, sans-serif;
       background: #fff;
       color: #11201A;
       font-size: 13px;
-      line-height: 1.4;
       overflow: hidden;
     }
 
     /* ── HEADER ── */
-    .header {
-      background: var(--green);
-      padding: 14px 16px;
+    .hdr {
+      background: #0A5C42;
+      padding: 16px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .header-title {
-      color: #fff;
-      font-weight: 800;
-      font-size: 18px;
-      letter-spacing: -.01em;
-    }
-    .header-title span { color: var(--yellow); }
-    .header-toggle {
-      display: flex; align-items: center;
-    }
-    .switch { position: relative; width: 40px; height: 22px; display: inline-block; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
+    .hdr-left { display: flex; align-items: center; gap: 10px; }
+    .hdr-title { color: #fff; font-weight: 800; font-size: 17px; }
+    .hdr-title .ia { color: #F2B705; }
+
+    /* Toggle switch */
+    .sw { position: relative; width: 40px; height: 22px; display: inline-block; }
+    .sw input { opacity: 0; width: 0; height: 0; }
+    .sw-track {
       position: absolute; inset: 0;
-      background: rgba(255,255,255,.3);
+      background: rgba(255,255,255,.28);
       border-radius: 22px; cursor: pointer;
-      transition: background .22s;
+      transition: background .2s;
     }
-    .slider::before {
+    .sw-track::before {
       content: '';
       position: absolute; left: 3px; top: 3px;
       width: 16px; height: 16px;
       background: #fff; border-radius: 50%;
       transition: transform .22s cubic-bezier(.34,1.56,.64,1);
-      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      box-shadow: 0 1px 4px rgba(0,0,0,.22);
     }
-    input:checked + .slider { background: rgba(255,255,255,.5); }
-    input:checked + .slider::before { transform: translateX(18px); }
+    .sw input:checked + .sw-track { background: rgba(255,255,255,.52); }
+    .sw input:checked + .sw-track::before { transform: translateX(18px); }
 
-    /* ── STATUS ── */
-    .status-bar {
-      display: flex; align-items: center; gap: 7px;
-      padding: 8px 16px;
-      background: #F7F6F2;
-      border-bottom: 1px solid #e8e6df;
-      font-size: 12px; color: #65676B;
-    }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .dot-on  { background: #22c55e; box-shadow: 0 0 5px #22c55e66; }
-    .dot-off { background: #9ca3af; }
-    .platform-chip {
-      margin-left: auto;
-      background: rgba(10,92,66,0.1);
-      color: var(--green);
-      padding: 2px 8px; border-radius: 99px;
-      font-size: 11px; font-weight: 700;
-    }
+    /* ── BODY ── */
+    .body { padding: 16px 18px; }
 
-    /* ── BODY POPUP ── */
-    .popup-body { padding: 14px 16px; }
-
-    /* Label section */
-    .section-label {
-      font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
-      color: #83837b; font-weight: 700; margin-bottom: 10px;
-    }
-
-    /* Header résultat */
-    .result-header { margin-bottom: 12px; min-height: 32px; }
-    .result-count {
-      display: flex; align-items: baseline; gap: 8px;
-    }
-    .result-num {
-      font-family: var(--display); font-size: 36px; font-weight: 800;
-      color: var(--red); line-height: 1;
-    }
-    .result-word { font-size: 15px; font-weight: 700; color: var(--red); }
-    .result-idle { font-size: 15px; font-weight: 700; color: #11201A; }
-    .result-scanning {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 14px; font-weight: 700; color: var(--green);
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      width: 15px; height: 15px;
-      border: 2px solid #cfe0d8; border-top-color: var(--green);
-      border-radius: 50%; display: inline-block;
-      animation: spin .7s linear infinite; flex-shrink: 0;
-    }
-
-    /* Rows modules */
-    .modules { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-    .mod-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 11px; background: #F7F6F2; border-radius: 10px;
-    }
-    .mod-name { font-size: 12px; font-weight: 800; color: var(--green); width: 100px; flex-shrink: 0; }
-    .mod-desc { font-size: 11px; color: #65676B; flex: 1; }
-    .mod-action { flex-shrink: 0; }
-
-    .btn-verify {
-      background: var(--green); color: #fff; border: none;
-      border-radius: 6px; padding: 4px 10px;
-      font: 700 11px var(--font); cursor: pointer; white-space: nowrap;
-      transition: opacity .15s;
-    }
-    .btn-verify:hover { opacity: .85; }
-    .mod-badge-red    { font: 800 12px var(--font); color: var(--red); white-space: nowrap; }
-    .mod-badge-green  { font: 800 12px var(--font); color: var(--green); white-space: nowrap; }
-
-    /* Boutons actions */
-    .action-row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+    .section-lbl {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #83837b;
+      font-weight: 700;
       margin-bottom: 8px;
     }
+
+    /* ── ÉTAT HEADER ── */
+    .state-idle {
+      font-size: 16px;
+      font-weight: 700;
+      color: #11201A;
+      margin-top: 6px;
+      margin-bottom: 14px;
+    }
+    .state-scanning {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      margin-bottom: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #0A5C42;
+    }
+    .state-done {
+      display: none;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 6px;
+      margin-bottom: 14px;
+    }
+    .alert-num {
+      font-family: 'Bricolage Grotesque', Georgia, sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      color: #C8102E;
+      line-height: 1;
+    }
+    .alert-word {
+      font-size: 15px;
+      font-weight: 700;
+      color: #C8102E;
+    }
+
+    /* ── SPINNER ── */
+    @keyframes vigSpin { to { transform: rotate(360deg); } }
+    .spin {
+      width: 14px; height: 14px;
+      border: 2px solid #cfe0d8;
+      border-top-color: #0A5C42;
+      border-radius: 50%;
+      display: inline-block;
+      animation: vigSpin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    .spin-sm {
+      width: 13px; height: 13px;
+      border: 2px solid #cfe0d8;
+      border-top-color: #0A5C42;
+      border-radius: 50%;
+      display: inline-block;
+      animation: vigSpin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── MODULE ROWS ── */
+    .modules { display: flex; flex-direction: column; gap: 6px; }
+    .mod-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #F7F6F2;
+      border-radius: 10px;
+    }
+    .mod-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0A5C42;
+      width: 108px;
+      flex-shrink: 0;
+    }
+    .mod-desc {
+      font-size: 12px;
+      color: #65676B;
+      flex: 1;
+      min-width: 0;
+    }
+    .mod-act { flex-shrink: 0; }
+
+    .btn-verify {
+      background: #0A5C42;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Libre Franklin', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .14s;
+    }
+    .btn-verify:hover { opacity: .84; }
+
+    .badge-red   { font-size: 12px; font-weight: 800; color: #C8102E; white-space: nowrap; }
+    .badge-green { font-size: 12px; font-weight: 800; color: #0A5C42;  white-space: nowrap; }
+
+    /* ── ACTIONS ── */
     .btn-scan-all {
-      grid-column: 1 / -1;
-      background: var(--green); color: #fff; border: none;
-      border-radius: 10px; padding: 12px;
-      font: 800 14px var(--font); cursor: pointer; transition: opacity .15s;
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      background: #0A5C42;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: 'Libre Franklin', sans-serif;
+      cursor: pointer;
+      transition: opacity .14s;
     }
     .btn-scan-all:hover { opacity: .88; }
-    .btn-secondary {
-      display: flex; align-items: center; justify-content: center; gap: 5px;
-      background: rgba(255,255,255,.04); border: 1px solid #e0ddd6;
-      border-radius: 8px; padding: 7px 10px;
-      color: #65676B; font: 600 11px var(--font); cursor: pointer;
-      transition: background .12s;
-    }
-    .btn-secondary:hover { background: #F7F6F2; }
 
-    /* Historique */
-    .history-section { border-top: 1px solid #e8e6df; padding-top: 10px; }
-    .history-empty { padding: 12px 0; text-align: center; color: #83837b; font-size: 12px; }
-    .history-item {
-      display: flex; align-items: center; gap: 9px;
-      padding: 6px 0; border-bottom: 1px solid #f0ede6;
+    .btn-reset {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      background: transparent;
+      color: #65676B;
+      border: none;
+      padding: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Libre Franklin', sans-serif;
+      cursor: pointer;
+      transition: color .14s;
     }
-    .history-item:last-child { border-bottom: none; }
-    .hdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .hdot-red    { background: var(--red); }
-    .hdot-orange { background: #d97706; }
-    .hdot-green  { background: var(--green); }
-    .h-info { flex: 1; min-width: 0; }
-    .h-type  { font-size: 10px; color: #83837b; text-transform: uppercase; letter-spacing: .04em; }
-    .h-label { font-size: 11px; color: #65676B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .h-time  { font-size: 10px; color: #c0bcb3; flex-shrink: 0; }
+    .btn-reset:hover { color: #0A5C42; }
 
-    /* Footer */
-    .footer {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 7px 14px; border-top: 1px solid #e8e6df;
-      font-size: 10px; color: #b0a89a;
-      background: #F7F6F2;
-    }
-
-    /* Bannière désactivé */
+    /* ── DISABLED BANNER ── */
     .disabled-banner {
-      display: none; align-items: center; gap: 8px;
-      padding: 10px 14px; background: rgba(200,16,46,0.08);
-      border-bottom: 1px solid rgba(200,16,46,0.2);
-      font-size: 11px; color: var(--red); font-weight: 600;
+      display: none;
+      padding: 10px 18px;
+      background: rgba(200,16,46,.07);
+      border-bottom: 1px solid rgba(200,16,46,.18);
+      font-size: 11px;
+      font-weight: 600;
+      color: #C8102E;
     }
-    .disabled-banner.visible { display: flex; }
-
-    /* Toast */
-    .toast {
-      position: fixed; bottom: 10px; left: 50%;
-      transform: translateX(-50%) translateY(40px);
-      background: #11201A; border-radius: 20px;
-      padding: 6px 14px; font-size: 11px; color: #7ab89a;
-      opacity: 0; transition: all .22s; pointer-events: none; z-index: 99; white-space: nowrap;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    @keyframes vigPop { from{opacity:0;transform:scale(.97) translateY(-4px)} to{opacity:1;transform:scale(1) translateY(0)} }
-    .anim-pop { animation: vigPop .18s ease-out; }
+    .disabled-banner.show { display: block; }
   </style>
 </head>
 <body>
 
 <!-- HEADER -->
-<header class="header">
-  <div class="header-left">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+<div class="hdr">
+  <div class="hdr-left">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/>
       <path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <span class="header-title">Vig<span>IA</span></span>
+    <span class="hdr-title">Vig<span class="ia">IA</span></span>
   </div>
-  <div class="header-toggle">
-    <label class="switch" title="Activer / désactiver">
-      <input type="checkbox" id="toggleEnabled" checked>
-      <span class="slider"></span>
-    </label>
-  </div>
-</header>
+  <label class="sw" title="Activer / désactiver VigIA">
+    <input type="checkbox" id="toggleEnabled" checked>
+    <span class="sw-track"></span>
+  </label>
+</div>
 
 <!-- BANNIÈRE DÉSACTIVÉ -->
 <div class="disabled-banner" id="disabledBanner">⚠ VigIA est désactivé sur cette page.</div>
 
-<!-- STATUS -->
-<div class="status-bar">
-  <span class="status-dot dot-on" id="statusDot"></span>
-  <span id="statusText">Actif</span>
-  <span class="platform-chip" id="platformLabel">—</span>
-</div>
-
 <!-- BODY -->
-<div class="popup-body">
-  <div class="section-label">Protection active sur cette page</div>
+<div class="body">
+  <div class="section-lbl">Protection active sur cette page</div>
 
-  <!-- Résultat / état header -->
-  <div class="result-header anim-pop" id="resultHeader">
-    <div class="result-idle" id="stateIdle">Prêt à analyser cette page.</div>
-    <div class="result-scanning" id="stateScanning" style="display:none;">
-      <span class="spinner"></span>Analyse en cours…
-    </div>
-    <div class="result-count" id="stateDone" style="display:none;">
-      <span class="result-num" id="alertCount">0</span>
-      <span class="result-word" id="alertWord">alerte(s) détectée(s)</span>
-    </div>
+  <!-- ÉTAT : idle -->
+  <div class="state-idle" id="stateIdle">Prêt à analyser cette page.</div>
+
+  <!-- ÉTAT : scanning -->
+  <div class="state-scanning" id="stateScanning">
+    <span class="spin"></span>Analyse en cours…
   </div>
 
-  <!-- Modules -->
-  <div class="modules" id="moduleRows">
-    <!-- Vérif-Média -->
-    <div class="mod-row" id="row-media">
+  <!-- ÉTAT : done -->
+  <div class="state-done" id="stateDone">
+    <span class="alert-num" id="alertCount">0</span>
+    <span class="alert-word" id="alertWord">alertes détectées</span>
+  </div>
+
+  <!-- MODULES -->
+  <div class="modules">
+    <div class="mod-row">
       <span class="mod-name">Vérif-Média</span>
       <span class="mod-desc">Manipulation IA</span>
-      <span class="mod-action" id="act-media">
-        <button class="btn-verify" onclick="scanModule('media')">Vérifier</button>
-      </span>
+      <span class="mod-act" id="act-media"></span>
     </div>
-    <!-- Vérif-Info -->
-    <div class="mod-row" id="row-info">
+    <div class="mod-row">
       <span class="mod-name">Vérif-Info</span>
       <span class="mod-desc">Fact-checking</span>
-      <span class="mod-action" id="act-info">
-        <button class="btn-verify" onclick="scanModule('info')">Vérifier</button>
-      </span>
+      <span class="mod-act" id="act-info"></span>
     </div>
-    <!-- Vérif-Lien -->
-    <div class="mod-row" id="row-link">
+    <div class="mod-row">
       <span class="mod-name">Vérif-Lien</span>
       <span class="mod-desc">Phishing / arnaque</span>
-      <span class="mod-action" id="act-link">
-        <button class="btn-verify" onclick="scanModule('link')">Vérifier</button>
-      </span>
+      <span class="mod-act" id="act-link"></span>
     </div>
-    <!-- Vérif-Compte -->
-    <div class="mod-row" id="row-account">
+    <div class="mod-row">
       <span class="mod-name">Vérif-Compte</span>
       <span class="mod-desc">Compte officiel</span>
-      <span class="mod-action" id="act-account">
-        <button class="btn-verify" onclick="scanModule('account')">Vérifier</button>
-      </span>
+      <span class="mod-act" id="act-account"></span>
     </div>
   </div>
 
-  <!-- Actions -->
-  <div class="action-row">
-    <button class="btn-scan-all" id="btnScanAll" onclick="scanAll()">Tout vérifier sur cette page</button>
-    <button class="btn-secondary" id="btnReport" onclick="report()">🚩 Signaler</button>
-    <button class="btn-secondary" id="btnReset" onclick="resetStats()">🗑 Effacer</button>
-  </div>
-
-  <!-- Historique -->
-  <div class="history-section">
-    <div class="section-label">Dernières vérifications</div>
-    <div id="historyContainer">
-      <div class="history-empty" id="historyEmpty">
-        Cliquez "Vérifier" sur un élément dans la page<br>pour voir les résultats ici.
-      </div>
-    </div>
-  </div>
+  <!-- ACTIONS -->
+  <button class="btn-scan-all" id="btnScanAll">Tout vérifier sur cette page</button>
+  <button class="btn-reset" id="btnReset">Réinitialiser la démo</button>
 </div>
-
-<!-- FOOTER -->
-<div class="footer">
-  <span>VigIA v0.1.0</span>
-  <span>Données locales uniquement</span>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script src="popup.js"></script>
 </body>
