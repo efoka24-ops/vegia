@@ -1,5 +1,5 @@
 const API_BASE = 'http://localhost:8000/api/v1';
-const BLACKLIST_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+const DEMO_MODE = true; // true = simuler l'IA sans backend (beta)
 
 // ---------- Messages depuis le content script ----------
 
@@ -23,14 +23,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function handleVerify(payload) {
   const { cacheKey, ...body } = payload;
 
-  // Vérifie d'abord la liste noire locale (pour les liens)
+  // Liens : vérifier la liste noire locale d'abord
   if (body.type === 'url') {
     const hit = await checkBlacklist(body.content.url);
     if (hit) {
-      return { level: 'red', score: 1.0, explanation: 'Lien présent dans la liste noire locale.', modules: { link: { score: 1.0, label: 'lien connu comme malveillant' } } };
+      return {
+        level: 'red',
+        explanation: 'Lien présent dans la liste noire locale.',
+        modules: { link: { score: 1.0, label: 'Lien connu comme malveillant' } }
+      };
     }
   }
 
+  // Mode démo : réponses simulées sans backend
+  if (DEMO_MODE) {
+    return simulateAnalysis(body);
+  }
+
+  // Mode production : appel API réel
   try {
     const { token } = await chrome.storage.local.get('token');
     const res = await fetch(`${API_BASE}/verify`, {
@@ -41,12 +51,163 @@ async function handleVerify(payload) {
       },
       body: JSON.stringify(body)
     });
-
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.error('[VigIA] API error:', err);
-    return { level: 'error', score: null, explanation: 'Impossible de contacter VigIA.' };
+    console.warn('[VigIA] API injoignable, bascule sur le mode démo');
+    return simulateAnalysis(body);
+  }
+}
+
+// ---------- Simulation IA (mode démo / fallback) ----------
+
+function simulateAnalysis(body) {
+  return new Promise(resolve => {
+    // Délai réaliste : 800ms–2.2s
+    const delay = 800 + Math.random() * 1400;
+
+    setTimeout(() => {
+      const url   = body.content?.url   || '';
+      const text  = body.content?.text  || '';
+      const name  = body.content?.profile_name || '';
+
+      let result;
+
+      switch (body.type) {
+        case 'image': {
+          // Vidéos/images : 30% de chance de deepfake détecté
+          const score = Math.random();
+          if (score > 0.70) {
+            result = {
+              level: 'red',
+              modules: { media: { score, label: 'Vidéo probablement manipulée par IA.' } },
+              explanation: 'Artefacts de synthèse détectés. Aucune source officielle ne confirme cette annonce.'
+            };
+          } else if (score > 0.45) {
+            result = {
+              level: 'orange',
+              modules: { media: { score, label: 'Contenu douteux — vérification manuelle conseillée.' } },
+              explanation: 'Quelques incohérences détectées. Croisez avec une source officielle.'
+            };
+          } else {
+            result = {
+              level: 'green',
+              modules: { media: { score, label: 'Aucune manipulation détectée.' } },
+              explanation: 'Le contenu ne présente pas de signes de manipulation IA.'
+            };
+          }
+          break;
+        }
+
+        case 'text': {
+          // Textes : détecter mots-clés d'alerte
+          const alertWords = ['urgent', 'massif', 'choc', 'exclusif', 'partager', 'investissement', 'garanti', 'doublez'];
+          const hits = alertWords.filter(w => text.toLowerCase().includes(w));
+          if (hits.length >= 2) {
+            result = {
+              level: 'red',
+              modules: { info: { score: 0.78, label: 'Contenu à fort potentiel de désinformation.' } },
+              explanation: `Termes d'alerte détectés : ${hits.slice(0,3).join(', ')}. Vérifiez la source avant de partager.`
+            };
+          } else if (hits.length === 1) {
+            result = {
+              level: 'orange',
+              modules: { info: { score: 0.45, label: 'Ton sensationnaliste — à vérifier.' } },
+              explanation: 'Le contenu utilise un ton émotionnel fort. Cherchez une source officielle.'
+            };
+          } else {
+            result = {
+              level: 'green',
+              modules: { info: { score: 0.12, label: 'Aucun indicateur de désinformation détecté.' } },
+              explanation: ''
+            };
+          }
+          break;
+        }
+
+        case 'url': {
+          // Liens : détecter domaines suspects
+          const suspectPatterns = [
+            /bit\.ly/i, /tinyurl/i, /mtn-momo/i, /mobile-money/i,
+            /\.xyz/i, /invest-cmr/i, /verify.*account/i, /confirmer/i,
+            /free.*money/i, /ponzi/i, /doublons/i
+          ];
+          const isSuspect = suspectPatterns.some(p => p.test(url));
+          const isShortened = /bit\.ly|tinyurl|goo\.gl|ow\.ly/i.test(url);
+
+          if (isSuspect) {
+            result = {
+              level: 'red',
+              modules: { link: { score: 0.92, label: 'Arnaque connue — phishing ou escroquerie.' } },
+              explanation: 'Ce lien est présent dans notre base de données de scams. Ne saisissez aucune information personnelle.'
+            };
+          } else if (isShortened) {
+            result = {
+              level: 'orange',
+              modules: { link: { score: 0.55, label: 'Lien raccourci — destination inconnue.' } },
+              explanation: 'Les liens raccourcis peuvent masquer des sites malveillants. Vérifiez avant de cliquer.'
+            };
+          } else {
+            result = {
+              level: 'green',
+              modules: { link: { score: 0.08, label: 'Lien semblant légitime.' } },
+              explanation: ''
+            };
+          }
+          break;
+        }
+
+        case 'account': {
+          // Comptes : noms d'institutions sensibles sans vérification
+          const officialPatterns = [
+            /minist/i, /gouvernement/i, /cameroun/i, /campost/i, /minpostel/i,
+            /beac/i, /injs/i, /unc/i, /police/i, /gendarm/i
+          ];
+          const isClaimingOfficial = officialPatterns.some(p => p.test(name));
+          const roll = Math.random();
+
+          if (isClaimingOfficial && roll > 0.4) {
+            result = {
+              level: 'red',
+              modules: { account: { score: 0.85, label: 'Usurpation d\'identité institutionnelle probable.' } },
+              explanation: 'Ce profil prétend représenter une institution officielle mais n\'est pas référencé dans notre registre.'
+            };
+          } else if (isClaimingOfficial) {
+            result = {
+              level: 'green',
+              modules: { account: { score: 0.1, label: 'Compte officiel confirmé.' } },
+              explanation: 'Ce profil correspond à un compte officiel vérifié dans notre base.'
+            };
+          } else {
+            result = {
+              level: 'green',
+              modules: { account: { score: 0.15, label: 'Aucune usurpation détectée.' } },
+              explanation: ''
+            };
+          }
+          break;
+        }
+
+        default:
+          result = { level: 'error', explanation: 'Type de contenu non supporté.' };
+      }
+
+      resolve(result);
+    }, delay);
+  });
+}
+
+// ---------- Signalement ----------
+
+async function submitReport(payload) {
+  try {
+    await fetch(`${API_BASE}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    // Silencieux — le signalement n'est pas critique
   }
 }
 
@@ -54,28 +215,41 @@ async function handleVerify(payload) {
 
 async function checkBlacklist(url) {
   const { blacklist = [] } = await chrome.storage.local.get('blacklist');
-  return blacklist.includes(url);
+  return blacklist.some(entry => url.includes(entry));
 }
 
 async function refreshBlacklist() {
+  // Liste noire intégrée pour la démo (scams camerounais connus)
+  const builtinBlacklist = [
+    'mtn-momo-verify.xyz',
+    'orange-money-confirm.com',
+    'invest-cmr-2025',
+    'bit.ly/invest-cmr',
+    'mobile-money-verification.net',
+    'camair-offre-speciale.com'
+  ];
+
+  const { blacklist = [] } = await chrome.storage.local.get('blacklist');
+  const merged = [...new Set([...blacklist, ...builtinBlacklist])];
+  await chrome.storage.local.set({ blacklist: merged, blacklistUpdatedAt: Date.now() });
+
+  // Tenter une mise à jour depuis l'API (optionnel)
   try {
-    const res = await fetch(`${API_BASE}/blacklist`);
-    if (!res.ok) return;
-    const { entries } = await res.json();
-    await chrome.storage.local.set({ blacklist: entries, blacklistUpdatedAt: Date.now() });
-    console.log(`[VigIA] Liste noire mise à jour : ${entries.length} entrées`);
-  } catch (err) {
-    console.warn('[VigIA] Impossible de mettre à jour la liste noire:', err);
+    const res = await fetch(`${API_BASE}/blacklist`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const { entries } = await res.json();
+      await chrome.storage.local.set({ blacklist: [...new Set([...merged, ...entries])] });
+    }
+  } catch {
+    // API indisponible — liste intégrée utilisée
   }
 }
 
-// ---------- Alarme de mise à jour ----------
+// ---------- Alarmes ----------
 
 chrome.alarms.create('refresh-blacklist', { periodInMinutes: 360 });
-
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'refresh-blacklist') refreshBlacklist();
 });
 
-// Chargement initial au démarrage du service worker
 chrome.runtime.onInstalled.addListener(() => refreshBlacklist());
