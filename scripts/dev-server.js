@@ -55,8 +55,12 @@ ensureZip();
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
 
-  // Route racine → landing page
-  if (urlPath === '/') urlPath = '/prototype/landing.html';
+  // Route racine → redirect vers landing page (302 pour que les URLs relatives fonctionnent)
+  if (urlPath === '/') {
+    res.writeHead(302, { Location: '/prototype/landing.html' });
+    res.end();
+    return;
+  }
 
   // Route téléchargement ZIP
   if (urlPath === '/vigia-extension.zip') {
