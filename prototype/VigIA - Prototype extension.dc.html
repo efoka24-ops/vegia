@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#11201A;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  @keyframes vigScan{0%{left:-40%;}100%{left:100%;}}
+  @keyframes vigPop{0%{opacity:0;transform:translateY(-8px) scale(.98);}100%{opacity:1;transform:translateY(0) scale(1);}}
+  @keyframes vigPulse{0%,100%{box-shadow:0 0 0 0 rgba(10,92,66,.45);}50%{box-shadow:0 0 0 8px rgba(10,92,66,0);}}
+  @keyframes vigSpin{to{transform:rotate(360deg);}}
+</style>
+</helmet>
+
+<div style="padding:40px;font-family:'Libre Franklin',sans-serif;">
+<x-import component="ChromeWindow" from="./browser-window.jsx" width="1180" height="760" url="facebook.com/fil" hint-size="1180px,760px">
+
+  <div data-screen-label="Navigateur · VigIA actif" style="position:relative;background:#F0F2F5;min-height:100%;font-family:'Libre Franklin',sans-serif;">
+
+    <!-- ===== Barre du site + lanceur extension ===== -->
+    <div style="position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #e3e5e9;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:26px;font-weight:900;color:#1877F2;letter-spacing:-.03em;">facebook</span>
+        <div style="width:240px;height:34px;border-radius:99px;background:#F0F2F5;display:flex;align-items:center;padding:0 16px;color:#8a8d91;font-size:14px;">Rechercher</div>
+      </div>
+
+      <!-- lanceur extension -->
+      <div style="position:relative;">
+        <button onClick="{{ togglePopup }}" style="display:flex;align-items:center;gap:9px;background:#0A5C42;border:none;border-radius:99px;padding:8px 16px 8px 10px;cursor:pointer;animation:vigPulse 2.4s ease-out infinite;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="color:#fff;font-weight:800;font-size:15px;">Vig<span style="color:#F2B705;">IA</span></span>
+          <sc-if value="{{ anyDone }}" hint-placeholder-val="{{ false }}">
+            <span style="background:#C8102E;color:#fff;font-size:12px;font-weight:800;border-radius:99px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 5px;">{{ alerts }}</span>
+          </sc-if>
+        </button>
+
+        <!-- popup -->
+        <sc-if value="{{ popupOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:52px;right:0;width:368px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(17,32,26,.28),0 0 0 1px rgba(17,32,26,.06);overflow:hidden;z-index:50;animation:vigPop .18s ease-out;">
+            <div style="background:#0A5C42;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span style="color:#fff;font-weight:800;font-size:18px;">Vig<span style="color:#F2B705;">IA</span></span>
+              </div>
+              <button onClick="{{ togglePopup }}" style="background:rgba(255,255,255,.16);border:none;color:#fff;width:26px;height:26px;border-radius:99px;cursor:pointer;font-size:15px;line-height:1;">✕</button>
+            </div>
+            <div style="padding:18px 20px;">
+              <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#83837b;font-weight:700;">Protection active sur cette page</div>
+              <sc-if value="{{ anyDone }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;"><span style="font-family:'Bricolage Grotesque',sans-serif;font-size:38px;font-weight:800;color:#C8102E;line-height:1;">{{ alerts }}</span><span style="font-size:16px;font-weight:700;color:#C8102E;">{{ alertsWord }} détectée(s)</span></div>
+              </sc-if>
+              <sc-if value="{{ noneDone }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:17px;font-weight:700;color:#11201A;margin-top:6px;">Prêt à analyser cette page.</div>
+              </sc-if>
+
+              <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
+                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Média</span>
+                  <span style="font-size:12px;color:#65676B;flex:1;">Manipulation IA</span>
+                  <sc-if value="{{ mediaDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ 82%</span></sc-if>
+                  <sc-if value="{{ mediaNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
+                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Info</span>
+                  <span style="font-size:12px;color:#65676B;flex:1;">Fact-checking</span>
+                  <span style="font-size:11px;color:#0A5C42;font-weight:700;">✓ RAS</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
+                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Lien</span>
+                  <span style="font-size:12px;color:#65676B;flex:1;">Phishing / arnaque</span>
+                  <sc-if value="{{ linkDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ arnaque</span></sc-if>
+                  <sc-if value="{{ linkNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
+                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Compte</span>
+                  <span style="font-size:12px;color:#65676B;flex:1;">Compte officiel</span>
+                  <sc-if value="{{ accountDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ non vérifié</span></sc-if>
+                  <sc-if value="{{ accountNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                </div>
+              </div>
+
+              <button onClick="{{ scanAll }}" style="width:100%;margin-top:16px;background:#0A5C42;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">Tout vérifier sur cette page</button>
+              <button onClick="{{ reset }}" style="width:100%;margin-top:8px;background:transparent;color:#65676B;border:none;padding:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Libre Franklin';">Réinitialiser la démo</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- ===== FIL ===== -->
+    <div style="max-width:620px;margin:0 auto;padding:24px 0 80px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- POST A · VIDÉO / DEEPFAKE -->
+      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 12px;">
+          <div style="width:42px;height:42px;border-radius:99px;background:#dfe3ea;display:flex;align-items:center;justify-content:center;font-weight:800;color:#8a8d91;">A2</div>
+          <div style="flex:1;"><div style="font-size:15px;font-weight:700;color:#11201A;">Actu Cameroun 237</div><div style="font-size:12px;color:#8a8d91;">il y a 2 h · 🌍 Public</div></div>
+          <span style="color:#8a8d91;font-size:22px;">⋯</span>
+        </div>
+        <div style="padding:0 18px 12px;font-size:15px;color:#1c1e21;line-height:1.45;">🔴 URGENT — Le responsable annonce une mesure choc qui change tout. À partager massivement&nbsp;!</div>
+        <div style="position:relative;height:300px;background:linear-gradient(135deg,#2a2f33,#11201A);display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:6px;">VIDÉO</div>
+          <div style="width:70px;height:70px;border-radius:99px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;"><div style="width:0;height:0;border-left:22px solid #11201A;border-top:14px solid transparent;border-bottom:14px solid transparent;margin-left:6px;"></div></div>
+        </div>
+        <!-- bande VigIA -->
+        <div style="padding:14px 18px;border-top:1px solid #f0f0f0;">
+          <sc-if value="{{ mediaIdle }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ scanMedia }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Vérifier cette vidéo avec VigIA
+            </button>
+          </sc-if>
+          <sc-if value="{{ mediaScanning }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:4px 2px;"><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:14px;font-weight:700;"><span style="width:16px;height:16px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span>Analyse Vérif-Média en cours…</div><div style="position:relative;height:6px;border-radius:99px;background:#EDE9E2;margin-top:12px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+          </sc-if>
+          <sc-if value="{{ mediaDone }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FCEBEC;border-radius:10px;border-left:5px solid #C8102E;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚠️</span><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-MÉDIA</span><span style="margin-left:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:#C8102E;">82%</span></div>
+              <div style="font-size:15px;color:#11201A;font-weight:700;margin-top:8px;">Vidéo probablement manipulée par IA.</div>
+              <div style="font-size:13px;color:#65676B;margin-top:4px;">Aucune source officielle ne confirme cette annonce.</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- POST B · MESSAGE / PHISHING -->
+      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 12px;">
+          <div style="width:42px;height:42px;border-radius:99px;background:#ffe7a8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#b58a00;">M</div>
+          <div style="flex:1;"><div style="font-size:15px;font-weight:700;color:#11201A;">MTN Mobile Money <span style="color:#8a8d91;font-weight:500;">· Messenger</span></div><div style="font-size:12px;color:#8a8d91;">Message reçu · à l'instant</div></div>
+          <span style="color:#8a8d91;font-size:22px;">⋯</span>
+        </div>
+        <div style="padding:0 18px 14px;">
+          <div style="background:#F0F2F5;border-radius:4px 16px 16px 16px;padding:14px 16px;font-size:15px;color:#1c1e21;line-height:1.5;max-width:90%;">Cher client, confirmez votre compte Mobile Money sous 24 h pour éviter la suspension :<br><span style="color:#1877F2;text-decoration:underline;word-break:break-all;">mtn-momo-verify.xyz/confirmer-compte</span></div>
+        </div>
+        <div style="padding:14px 18px;border-top:1px solid #f0f0f0;">
+          <sc-if value="{{ linkIdle }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ scanLink }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Vérifier ce lien avec VigIA
+            </button>
+          </sc-if>
+          <sc-if value="{{ linkScanning }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:4px 2px;"><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:14px;font-weight:700;"><span style="width:16px;height:16px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span>Analyse Vérif-Lien en cours…</div><div style="position:relative;height:6px;border-radius:99px;background:#EDE9E2;margin-top:12px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+          </sc-if>
+          <sc-if value="{{ linkDone }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FCEBEC;border-radius:10px;border-left:5px solid #C8102E;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚠️</span><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-LIEN</span></div>
+              <div style="font-size:15px;color:#11201A;font-weight:700;margin-top:8px;">Arnaque connue — phishing mobile money.</div>
+              <div style="font-size:13px;color:#65676B;margin-top:4px;">Présent dans la liste noire collaborative. Ne saisissez jamais votre code.</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- POST C · PROFIL / USURPATION -->
+      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+        <div style="padding:14px 18px 6px;font-size:13px;color:#8a8d91;font-weight:700;">Suggestion · Personne que vous pourriez connaître</div>
+        <div style="display:flex;align-items:center;gap:14px;padding:8px 18px 16px;">
+          <div style="width:56px;height:56px;border-radius:99px;background:#cdd6df;display:flex;align-items:center;justify-content:center;font-weight:800;color:#7c8a96;">MP</div>
+          <div style="flex:1;"><div style="font-size:16px;font-weight:700;color:#11201A;">Le Ministre des Postes et Télécommunications</div><div style="font-size:13px;color:#8a8d91;">12 k abonnés · 3 amis en commun</div></div>
+          <button style="background:#1877F2;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';">Suivre</button>
+        </div>
+        <div style="padding:14px 18px;border-top:1px solid #f0f0f0;">
+          <sc-if value="{{ accountIdle }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ scanAccount }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Vérifier ce compte avec VigIA
+            </button>
+          </sc-if>
+          <sc-if value="{{ accountScanning }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:4px 2px;"><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:14px;font-weight:700;"><span style="width:16px;height:16px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span>Analyse Vérif-Compte en cours…</div><div style="position:relative;height:6px;border-radius:99px;background:#EDE9E2;margin-top:12px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+          </sc-if>
+          <sc-if value="{{ accountDone }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FCEBEC;border-radius:10px;border-left:5px solid #C8102E;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚠️</span><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-COMPTE</span></div>
+              <div style="font-size:15px;color:#11201A;font-weight:700;margin-top:8px;">Ne correspond à aucun compte officiel vérifié.</div>
+              <div style="font-size:13px;color:#65676B;margin-top:4px;">Le registre national ne référence aucun compte officiel pour ce profil.</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- contre-exemple : compte officiel confirmé -->
+      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;">
+          <div style="width:48px;height:48px;border-radius:99px;background:#0A5C42;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;">MP</div>
+          <div style="flex:1;"><div style="font-size:15px;font-weight:700;color:#11201A;display:flex;align-items:center;gap:6px;">MINPOSTEL — Compte officiel</div><div style="font-size:13px;color:#8a8d91;">Vérifié par VigIA</div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#EEF3F0;border-radius:99px;padding:7px 14px;"><span style="font-size:16px;">✅</span><span style="font-size:13px;font-weight:800;color:#0A5C42;">Compte officiel confirmé</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260,&quot;height&quot;:840}}">
+class Component extends DCLogic {
+  state = { popupOpen: false, media: 'idle', link: 'idle', account: 'idle' };
+
+  _scan(key, delay) {
+    if (this.state[key] === 'scanning') return;
+    this.setState({ [key]: 'scanning' });
+    setTimeout(() => this.setState({ [key]: 'done' }), delay || 1200);
+  }
+
+  scanAll() {
+    this.setState({ popupOpen: true });
+    ['media', 'link', 'account'].forEach((k, i) => {
+      if (this.state[k] !== 'done') {
+        this.setState({ [k]: 'scanning' });
+        setTimeout(() => this.setState({ [k]: 'done' }), 700 + i * 550);
+      }
+    });
+  }
+
+  reset() {
+    this.setState({ media: 'idle', link: 'idle', account: 'idle' });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const done = k => s[k] === 'done';
+    const alerts = ['media', 'link', 'account'].filter(done).length;
+    return {
+      popupOpen: s.popupOpen,
+      togglePopup: () => this.setState(st => ({ popupOpen: !st.popupOpen })),
+      scanMedia: () => this._scan('media'),
+      scanLink: () => this._scan('link'),
+      scanAccount: () => this._scan('account'),
+      scanAll: () => this.scanAll(),
+      reset: () => this.reset(),
+
+      mediaIdle: s.media === 'idle', mediaScanning: s.media === 'scanning', mediaDone: s.media === 'done', mediaNotDone: s.media !== 'done',
+      linkIdle: s.link === 'idle', linkScanning: s.link === 'scanning', linkDone: s.link === 'done', linkNotDone: s.link !== 'done',
+      accountIdle: s.account === 'idle', accountScanning: s.account === 'scanning', accountDone: s.account === 'done', accountNotDone: s.account !== 'done',
+
+      alerts,
+      alertsWord: alerts > 1 ? 'alertes' : 'alerte',
+      anyDone: alerts > 0,
+      noneDone: alerts === 0,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -28,3 +28,5 @@ data/registre/
 
 # Docker volumes locaux
 infra/volumes/
+
+chrome-profile/
