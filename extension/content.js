@@ -27,6 +27,20 @@ const SITE_CONFIG = {
   }
 };
 
+const CTX_LABELS = {
+  images:   'Vérifier cette vidéo avec VigIA',
+  posts:    'Vérifier ce texte avec VigIA',
+  links:    'Vérifier ce lien avec VigIA',
+  profiles: 'Vérifier ce compte avec VigIA',
+};
+
+const CTX_MODULE = {
+  images:   'VÉRIF-MÉDIA',
+  posts:    'VÉRIF-INFO',
+  links:    'VÉRIF-LIEN',
+  profiles: 'VÉRIF-COMPTE',
+};
+
 function detectSite() {
   const h = location.hostname;
   if (h.includes('facebook')) return 'facebook';
@@ -41,42 +55,42 @@ if (!site) throw new Error('[VigIA] Site non supporté');
 
 const config = SITE_CONFIG[site];
 
-// ---------- Injection du bouton ----------
+// ---------- Injection du bouton contextuel ----------
 
 function attachButton(element, context) {
   if (element.dataset.vigiaOk) return;
   element.dataset.vigiaOk = '1';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'vigia-wrapper';
-  element.parentNode.insertBefore(wrapper, element);
-  wrapper.appendChild(element);
+  const cta = document.createElement('div');
+  cta.className = 'vigia-cta';
 
   const btn = document.createElement('button');
   btn.className = 'vigia-btn';
-  btn.textContent = 'Vérifier';
+  btn.innerHTML = `<span class="vigia-btn-icon"></span>${CTX_LABELS[context] || 'Vérifier avec VigIA'}`;
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
-    runVerification(element, context, wrapper);
+    runVerification(element, context, cta);
   });
-  wrapper.appendChild(btn);
+
+  cta.appendChild(btn);
+  element.insertAdjacentElement('afterend', cta);
 }
 
 // ---------- Lancement de la vérification ----------
 
-async function runVerification(element, context, wrapper) {
+async function runVerification(element, context, cta) {
   const payload = buildPayload(element, context);
   if (!payload) return;
 
-  setBadge(wrapper, 'loading');
+  setCtaLoading(cta);
 
   chrome.runtime.sendMessage({ type: 'VERIFY', payload }, (result) => {
     if (chrome.runtime.lastError) {
-      setBadge(wrapper, 'error');
+      setCtaError(cta);
       return;
     }
-    renderResult(wrapper, result, context);
+    renderResult(cta, result, context);
   });
 }
 
@@ -90,8 +104,7 @@ function buildPayload(element, context) {
   }
 
   if (context === 'links' && tag === 'A') {
-    const url = element.href;
-    return { type: 'url', content: { url }, source: site, cacheKey: `url:${url}` };
+    return { type: 'url', content: { url: element.href }, source: site, cacheKey: `url:${element.href}` };
   }
 
   if (context === 'posts') {
@@ -110,120 +123,61 @@ function buildPayload(element, context) {
   return null;
 }
 
-// ---------- Rendu du badge + tooltip ----------
+// ---------- États de la CTA ----------
 
-const BADGE_CFG = {
-  green:   { icon: '✓', label: 'Fiable' },
-  orange:  { icon: '⚠', label: 'Douteux' },
-  red:     { icon: '✗', label: 'Suspect' },
-  loading: { icon: '',  label: '...' },
-  error:   { icon: '!', label: 'Erreur' },
-};
-
-const MODULE_META = {
-  media:   { icon: '🖼', name: 'Image / Vidéo' },
-  info:    { icon: '📰', name: 'Fact-check' },
-  link:    { icon: '🔗', name: 'Lien' },
-  account: { icon: '👤', name: 'Compte' },
-};
-
-function setBadge(wrapper, level, _unused) {
-  let badge = wrapper.querySelector('.vigia-badge');
-  if (!badge) {
-    badge = document.createElement('div');
-    wrapper.appendChild(badge);
-  }
-  const cfg = BADGE_CFG[level] || BADGE_CFG.error;
-  badge.className = `vigia-badge vigia-badge--${level}`;
-  badge.textContent = cfg.label;
-  return badge;
+function setCtaLoading(cta) {
+  cta.innerHTML = `
+    <div class="vigia-loading">
+      <span class="vigia-spinner"></span>
+      Analyse en cours…
+    </div>
+    <div class="vigia-scan-bar"><div class="vigia-scan-progress"></div></div>
+  `;
 }
 
-function renderResult(wrapper, result, context) {
-  const level = result.level || 'error';
-  const badge = setBadge(wrapper, level);
+function setCtaError(cta) {
+  cta.innerHTML = `<div class="vigia-error">Impossible de contacter VigIA. Réessayez.</div>`;
+}
 
-  // Sauvegarde dans l'historique
-  if (level !== 'loading' && level !== 'error') {
-    const mod = Object.values(result.modules || {})[0];
+// ---------- Rendu du résultat inline ----------
+
+function renderResult(cta, result, context) {
+  const level  = result.level || 'error';
+  const module = CTX_MODULE[context] || 'VÉRIF';
+  const mods   = result.modules || {};
+  const mod    = Object.values(mods)[0];
+  const score  = mod?.score != null ? Math.round(mod.score * 100) : null;
+  const label  = mod?.label || result.explanation || '—';
+  const detail = result.explanation || mod?.label || '';
+
+  const icons = { red: '⚠️', orange: '⚠️', green: '✅', error: '❓' };
+  const colors = { red: '#C8102E', orange: '#d97706', green: '#0A5C42', error: '#64748b' };
+  const bgs    = { red: '#FCEBEC', orange: '#FFF8EC', green: '#EEF3F0', error: '#f8f8f8' };
+
+  cta.innerHTML = `
+    <div class="vigia-result vigia-result--${level}">
+      <div class="vigia-result-header">
+        <span class="vigia-result-icon">${icons[level] || '❓'}</span>
+        <span class="vigia-result-module">${module}</span>
+        ${score !== null ? `<span class="vigia-result-score">${score}%</span>` : ''}
+      </div>
+      <div class="vigia-result-label">${escHtml(label)}</div>
+      ${detail && detail !== label ? `<div class="vigia-result-detail">${escHtml(detail)}</div>` : ''}
+      <button class="vigia-result-report">Signaler</button>
+    </div>
+  `;
+
+  cta.querySelector('.vigia-result-report')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    chrome.runtime.sendMessage({ type: 'REPORT', payload: { result, url: location.href } });
+    e.target.textContent = 'Signalé ✓';
+    e.target.disabled = true;
+  });
+
+  if (level !== 'error') {
     saveHistory({ level, type: context || 'image', label: mod?.label || result.explanation || '' });
     updateStats(level);
   }
-
-  badge.addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    toggleTooltip(badge, result);
-  });
-}
-
-function toggleTooltip(badge, result) {
-  const existing = badge.querySelector('.vigia-tooltip');
-  if (existing) { existing.remove(); return; }
-
-  const tt = document.createElement('div');
-  tt.className = 'vigia-tooltip';
-  tt.innerHTML = buildTooltipHTML(result);
-
-  tt.querySelector('.btn-sources')?.addEventListener('click', () => {
-    const src = result.sources?.[0];
-    if (src) window.open(src, '_blank');
-    tt.remove();
-  });
-
-  tt.querySelector('.btn-report')?.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'REPORT', payload: { result, url: location.href } });
-    tt.remove();
-  });
-
-  badge.appendChild(tt);
-  setTimeout(() => {
-    document.addEventListener('click', () => tt.remove(), { once: true });
-  }, 0);
-}
-
-function scoreClass(score) {
-  if (score == null) return '';
-  if (score >= 0.7)  return 'vigia-tooltip__score--high';
-  if (score >= 0.35) return 'vigia-tooltip__score--mid';
-  return 'vigia-tooltip__score--low';
-}
-
-function buildTooltipHTML(result) {
-  const mods  = result.modules || {};
-  const level = result.level || 'error';
-  const verdicts = { green: 'Fiable', orange: 'Douteux', red: 'Suspect' };
-
-  const rows = Object.entries(MODULE_META).map(([key, meta]) => {
-    const mod = mods[key];
-    if (!mod) return '';
-    const sc = mod.score != null ? `<span class="vigia-tooltip__score ${scoreClass(mod.score)}">${Math.round(mod.score * 100)}%</span>` : '';
-    return `
-      <div class="vigia-tooltip__row">
-        <span class="vigia-tooltip__module-icon">${meta.icon}</span>
-        <div class="vigia-tooltip__module-info">
-          <div class="vigia-tooltip__module-name">${meta.name}</div>
-          <div class="vigia-tooltip__module-label">${mod.label || '—'}</div>
-        </div>
-        ${sc}
-      </div>`;
-  }).join('');
-
-  const hasSources = result.sources?.length > 0;
-
-  return `
-    <div class="vigia-tooltip__header">
-      <span class="vigia-tooltip__header-icon"></span>
-      <span>VigIA</span>
-      <span class="vigia-tooltip__verdict vigia-tooltip__verdict--${level}">${verdicts[level] || level}</span>
-    </div>
-    <div class="vigia-tooltip__body">${rows || '<div style="color:#64748b;font-size:11px;padding:4px 0">Aucun module activé</div>'}</div>
-    ${result.explanation ? `<div class="vigia-tooltip__explanation">${result.explanation}</div>` : ''}
-    <div class="vigia-tooltip__actions">
-      ${hasSources ? `<button class="vigia-tooltip__btn vigia-tooltip__btn--primary btn-sources">Voir sources</button>` : ''}
-      <button class="vigia-tooltip__btn btn-report">Signaler</button>
-    </div>
-  `;
 }
 
 // ---------- Historique & stats ----------
@@ -263,7 +217,7 @@ function scanNode(root) {
 }
 
 observer.observe(document.body, { childList: true, subtree: true });
-scanNode(document.body); // scan initial
+scanNode(document.body);
 
 // ---------- Utilitaires ----------
 
@@ -273,4 +227,8 @@ function simpleHash(str) {
     h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
   }
   return h.toString(36);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
