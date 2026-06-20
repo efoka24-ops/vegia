@@ -15,17 +15,30 @@ if (!SITE) { /* site non supporté - arrêt silencieux */ }
 
 const SELECTORS = {
   facebook: {
-    // Posts : plusieurs fallbacks dans l'ordre
+    // Posts : fallbacks pour www + web.facebook.com
     posts: [
-      'div[data-pagelet^="FeedUnit"]',
-      'div[role="article"]',
-      'div[aria-posinset]',
+      'div[data-pagelet^="FeedUnit"]',   // www.facebook.com
+      'div[role="article"]',             // www.facebook.com
+      'div[aria-posinset]',              // www.facebook.com
+      'div.userContentWrapper',          // web.facebook.com
+      'div._5pcr',                       // web.facebook.com (classique)
+      'div[data-testid="fbfeed_story"]', // web.facebook.com
     ],
-    videos:    ['video'],
-    links:     ['a[href*="l.facebook.com/l.php"]', 'a[href*="bit.ly"]', 'a[href*=".xyz"]'],
-    profiles:  ['a[href*="profile.php"] img', 'h2 a[href*="facebook.com"]'],
+    videos:   ['video'],
+    links:    ['a[href*="l.facebook.com/l.php"]', 'a[href*="bit.ly"]', 'a[href*=".xyz"]'],
+    profiles: [
+      'a[href*="profile.php"] img',
+      'h2 a[href*="facebook.com"]',
+      'h1',  // page de profil : le h1 est le nom du compte
+    ],
     // Sélecteur text pour SCAN_PAGE
-    textNodes: ['div[dir="auto"]'],
+    textNodes: [
+      'div[dir="auto"]',       // www.facebook.com
+      'div[data-ad-comet-preview="message"]',
+      'span._5yl5',            // web.facebook.com
+      'div.userContent p',     // web.facebook.com
+      'p',                     // fallback générique
+    ],
   },
   twitter: {
     posts:     ['article[data-testid="tweet"]', 'article'],
@@ -75,7 +88,7 @@ const SHIELD_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 function getPageSummary() {
   const cfg = SELECTORS[SITE] || {};
 
-  // Texte : prendre les n premiers nœuds texte non vides
+  // Texte : prendre les premiers nœuds texte significatifs
   const textEls = queryAny(cfg.textNodes || []);
   const text = textEls
     .map(el => el.innerText?.trim())
@@ -84,25 +97,39 @@ function getPageSummary() {
     .join('\n\n')
     .slice(0, 2000);
 
-  // Vidéos / images
-  const videos    = document.querySelectorAll('video').length;
-  const feedImgs  = document.querySelectorAll(
+  // Vidéos / images media
+  const videos   = document.querySelectorAll('video').length;
+  const feedImgs = document.querySelectorAll(
     'img[src*="fbcdn"], img[src*="scontent"], img[src*="licdn"], img[src*="twimg"]'
   ).length;
-  const hasMedia  = videos > 0 || feedImgs > 3;
+  const hasMedia = videos > 0 || feedImgs > 3;
 
   // Liens suspects
-  const suspLinks    = queryAny(cfg.links || []);
+  const suspLinks     = queryAny(cfg.links || []);
   const firstSuspLink = suspLinks[0]?.href || '';
 
-  // Nom de profil / institution
-  const profileName = (
-    document.querySelector('h1')?.innerText ||
-    document.querySelector('[data-pagelet="ProfileTilesFeed"] h2')?.innerText ||
-    document.querySelector('h2')?.innerText || ''
-  ).trim().slice(0, 100);
+  // Nom de profil — essayer plusieurs sources
+  const profileName = [
+    document.querySelector('h1'),
+    document.querySelector('[data-pagelet="ProfileTilesFeed"] h2'),
+    document.querySelector('h2'),
+    document.querySelector('#fb-timeline-cover-name'),       // web.facebook.com
+    document.querySelector('[id="pageTitle"]'),              // web.facebook.com
+    document.querySelector('._2yap, ._19bm, .actor-name'),  // web.facebook.com classique
+  ]
+    .map(el => el?.innerText?.trim())
+    .find(t => t && t.length > 1) || '';
 
-  return { text, hasMedia, hasSuspLinks: suspLinks.length > 0, firstSuspLink, profileName };
+  // URL de profil : si c'est une page utilisateur, extraire le slug
+  const slug = location.pathname.replace(/^\//, '').split('?')[0] || '';
+
+  return {
+    text,
+    hasMedia,
+    hasSuspLinks: suspLinks.length > 0,
+    firstSuspLink,
+    profileName: profileName || slug,  // fallback sur le slug URL
+  };
 }
 
 // ── Injection des boutons contextuels ─────────────────────────

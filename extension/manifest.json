@@ -17,6 +17,7 @@
   ],
   "host_permissions": [
     "https://www.facebook.com/*",
+    "https://web.facebook.com/*",
     "https://facebook.com/*",
     "https://m.facebook.com/*",
     "https://twitter.com/*",
@@ -33,6 +34,7 @@
     {
       "matches": [
         "https://www.facebook.com/*",
+        "https://web.facebook.com/*",
         "https://facebook.com/*",
         "https://m.facebook.com/*",
         "https://twitter.com/*",
