@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "zip": "node scripts/make-extension-zip.js"
+    "dev":          "node scripts/dev-server.js",
+    "test":         "playwright test",
+    "test:headed":  "playwright test --headed",
+    "zip":          "node scripts/make-extension-zip.js"
   },
   "repository": {
     "type": "git",
