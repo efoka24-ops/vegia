@@ -5,404 +5,638 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VigIA — Détectez deepfakes et arnaques sur les réseaux sociaux</title>
 <meta name="description" content="Extension Chrome qui détecte deepfakes, désinformation et arnaques sur Facebook, LinkedIn, X et WhatsApp. Conçue pour le Cameroun.">
-<link rel="icon" href="prototype/icons/vigia.svg" type="image/svg+xml">
+<link rel="icon" href="icons/vigia.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   :root {
     --green: #0A5C42;
+    --green-mid: #1a7a5a;
     --green-light: #EEF3F0;
     --yellow: #F2B705;
     --red: #C8102E;
     --dark: #11201A;
     --font: 'Libre Franklin', sans-serif;
+    --display: 'Bricolage Grotesque', sans-serif;
   }
-  body {
-    font-family: var(--font);
-    background: var(--dark);
-    color: #fff;
-    line-height: 1.5;
-    min-height: 100vh;
-  }
+  body { font-family: var(--font); background: var(--dark); color: #fff; line-height: 1.5; }
+  a { color: inherit; }
 
   /* ── NAV ── */
   nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 48px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky; top: 0;
-    background: rgba(17,32,26,0.92);
-    backdrop-filter: blur(12px);
-    z-index: 100;
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(17,32,26,0.94);
+    backdrop-filter: blur(14px);
   }
   .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-  .nav-logo svg { flex-shrink: 0; }
-  .nav-logo-text { font-size: 20px; font-weight: 800; color: #fff; }
-  .nav-logo-text span { color: var(--yellow); }
-  .nav-links { display: flex; align-items: center; gap: 24px; }
-  .nav-links a { color: #7ab89a; text-decoration: none; font-size: 14px; font-weight: 600; transition: color 0.15s; }
-  .nav-links a:hover { color: #fff; }
-  .nav-cta {
-    background: var(--green);
-    color: #fff;
-    padding: 9px 20px;
-    border-radius: 99px;
-    font-weight: 800;
-    font-size: 14px;
-    text-decoration: none;
-    transition: opacity 0.15s;
+  .logo-text { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -.01em; }
+  .logo-text span { color: var(--yellow); }
+  .nav-links { display: flex; align-items: center; gap: 6px; }
+  .nav-links a {
+    color: #7ab89a; text-decoration: none; font-size: 14px; font-weight: 600;
+    padding: 7px 14px; border-radius: 8px; transition: background 0.15s, color 0.15s;
   }
-  .nav-cta:hover { opacity: 0.85; color: #fff; }
+  .nav-links a:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .nav-cta {
+    background: var(--green); color: #fff !important;
+    padding: 9px 20px !important; border-radius: 99px !important;
+    font-weight: 800 !important; transition: opacity 0.15s !important;
+  }
+  .nav-cta:hover { opacity: 0.85; background: var(--green) !important; }
+  .nav-mobile-btn { display: none; background: none; border: none; color: #7ab89a; font-size: 22px; cursor: pointer; }
 
   /* ── HERO ── */
   .hero {
-    text-align: center;
-    padding: 90px 24px 70px;
-    position: relative;
-    overflow: hidden;
+    text-align: center; padding: 100px 24px 80px;
+    position: relative; overflow: hidden;
   }
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -100px; left: 50%;
-    transform: translateX(-50%);
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(10,92,66,0.22) 0%, transparent 70%);
+  .hero-glow {
+    position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 700px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(10,92,66,0.25) 0%, transparent 68%);
     pointer-events: none;
   }
   .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    background: rgba(10,92,66,0.18);
-    border: 1px solid rgba(10,92,66,0.4);
-    border-radius: 99px;
-    padding: 5px 14px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #7ab89a;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin-bottom: 28px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(10,92,66,0.15); border: 1px solid rgba(10,92,66,0.35);
+    border-radius: 99px; padding: 6px 16px;
+    font-size: 11px; font-weight: 700; color: #7ab89a;
+    letter-spacing: .1em; text-transform: uppercase; margin-bottom: 30px;
   }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0)} }
+
   .hero h1 {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: clamp(36px, 6vw, 72px);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -.02em;
-    margin-bottom: 24px;
-    max-width: 780px;
-    margin-left: auto;
-    margin-right: auto;
+    font-family: var(--display); font-size: clamp(38px, 6vw, 74px);
+    font-weight: 800; line-height: 1.06; letter-spacing: -.025em;
+    margin-bottom: 26px; max-width: 820px; margin-left: auto; margin-right: auto;
   }
   .hero h1 em { color: var(--yellow); font-style: normal; }
-  .hero p {
-    font-size: 18px;
-    color: #7ab89a;
-    max-width: 520px;
-    margin: 0 auto 40px;
-    line-height: 1.6;
+  .hero-sub {
+    font-size: 18px; color: #7ab89a; max-width: 540px;
+    margin: 0 auto 44px; line-height: 1.65;
   }
-  .hero-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    background: var(--green);
-    color: #fff;
-    padding: 14px 28px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 800;
-    text-decoration: none;
-    transition: transform 0.15s, opacity 0.15s;
-    box-shadow: 0 4px 20px rgba(10,92,66,0.5);
-  }
-  .btn-primary:hover { transform: translateY(-2px); opacity: 0.92; }
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255,255,255,0.06);
-    color: #fff;
-    padding: 14px 24px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    text-decoration: none;
-    border: 1px solid rgba(255,255,255,0.1);
-    transition: background 0.15s;
-  }
-  .btn-secondary:hover { background: rgba(255,255,255,0.10); }
+  .hero-actions { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+  .btn { display: inline-flex; align-items: center; gap: 9px; border-radius: 12px; font-weight: 800; text-decoration: none; transition: all 0.18s; font-family: var(--font); border: none; cursor: pointer; }
+  .btn-lg { font-size: 16px; padding: 15px 30px; }
+  .btn-md { font-size: 14px; padding: 12px 22px; }
+  .btn-primary { background: var(--green); color: #fff; box-shadow: 0 4px 24px rgba(10,92,66,.45); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(10,92,66,.55); }
+  .btn-ghost { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.10); }
 
   /* ── PLATFORMS ── */
-  .platforms {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 48px;
-    flex-wrap: wrap;
-  }
-  .platform-chip {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 99px;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #94a3b8;
-  }
-
-  /* ── FEATURES ── */
-  .section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
-  .section-label {
-    font-size: 11px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: #4a7c5f;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-  .section-title {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: clamp(28px, 4vw, 42px);
-    font-weight: 800;
-    line-height: 1.15;
-    margin-bottom: 48px;
-  }
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-  }
-  .feature-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
-    padding: 28px;
+  .platforms { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 52px; flex-wrap: wrap; }
+  .chip {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 99px; padding: 7px 16px; font-size: 13px; font-weight: 600; color: #94a3b8;
     transition: border-color 0.2s;
   }
-  .feature-card:hover { border-color: rgba(10,92,66,0.4); }
-  .feature-icon {
-    width: 44px; height: 44px;
-    background: rgba(10,92,66,0.15);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    margin-bottom: 16px;
+  .chip:hover { border-color: rgba(10,92,66,.4); color: #7ab89a; }
+
+  /* ── DEMO PREVIEW ── */
+  .demo-section { padding: 0 24px 80px; max-width: 1140px; margin: 0 auto; }
+  .demo-frame {
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,0.06);
+    position: relative; background: #1a2a1e;
   }
-  .feature-card h3 { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
-  .feature-card p { font-size: 13px; color: #7ab89a; line-height: 1.55; }
+  .demo-bar {
+    background: #202124; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 16px;
+  }
+  .demo-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .demo-url {
+    flex: 1; height: 28px; background: #282a2d; border-radius: 14px;
+    display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    font-size: 12px; color: #9aa0a6; font-family: system-ui; margin: 0 8px;
+  }
+  .demo-content {
+    position: relative; background: #F0F2F5; padding: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  /* Carte post simulée */
+  .demo-post {
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12); overflow: hidden;
+    max-width: 520px; margin: 0 auto; width: 100%;
+  }
+  .demo-post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; }
+  .demo-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
+  .demo-post-text { padding: 0 16px 12px; font-size: 13px; color: #1c1e21; line-height: 1.45; }
+  .demo-video { background: linear-gradient(135deg,#2a2f33,#11201A); height: 160px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .demo-play { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.9); display: flex; align-items: center; justify-content: center; }
+  .demo-play::after { content:''; border-left: 16px solid #11201A; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
+  .demo-cta-area { padding: 12px 16px; border-top: 1px solid #f0f0f0; }
+  .demo-cta-btn {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    width: 100%; padding: 10px; background: #EEF3F0;
+    color: var(--green); border: 1.5px solid var(--green);
+    border-radius: 10px; font: 700 14px var(--font); cursor: pointer;
+    animation: ctaPulse 2.5s ease-out infinite;
+  }
+  @keyframes ctaPulse { 0%,100%{box-shadow:0 0 0 0 rgba(10,92,66,.3)} 50%{box-shadow:0 0 0 6px rgba(10,92,66,0)} }
+  .demo-result { background: #FCEBEC; border-left: 4px solid var(--red); border-radius: 10px; padding: 12px 14px; margin-top: 8px; animation: slideIn .3s ease; display: none; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .demo-result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .demo-result.show { display: block; }
+  .demo-label { font: 800 10px var(--font); letter-spacing:.12em; color: var(--red); text-transform: uppercase; }
+  .demo-score { margin-left: auto; font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--red); }
+
+  /* ── HOW IT WORKS ── */
+  .section { padding: 80px 24px; max-width: 1140px; margin: 0 auto; }
+  .section-eyebrow { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #4a7c5f; font-weight: 700; margin-bottom: 12px; }
+  .section-title { font-family: var(--display); font-size: clamp(28px, 4vw, 46px); font-weight: 800; line-height: 1.12; margin-bottom: 54px; }
+  .section-title span { color: var(--yellow); }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2px; background: rgba(255,255,255,.05); border-radius: 16px; overflow: hidden; }
+  .step { background: var(--dark); padding: 32px 28px; position: relative; }
+  .step-num { font-family: var(--display); font-size: 56px; font-weight: 800; color: rgba(10,92,66,.25); line-height: 1; margin-bottom: 14px; }
+  .step h3 { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
+  .step p { font-size: 13px; color: #7ab89a; line-height: 1.6; }
+  .step-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+
+  /* ── MODULES ── */
+  .modules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .module-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; padding: 28px; transition: all 0.2s; cursor: default;
+  }
+  .module-card:hover { background: rgba(10,92,66,0.08); border-color: rgba(10,92,66,0.3); transform: translateY(-3px); }
+  .module-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 18px; }
+  .module-icon.green  { background: rgba(10,92,66,0.18); }
+  .module-icon.red    { background: rgba(200,16,46,0.12); }
+  .module-icon.yellow { background: rgba(242,183,5,0.12); }
+  .module-icon.blue   { background: rgba(10,92,66,0.12); }
+  .module-card h3 { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+  .module-card p  { font-size: 13px; color: #7ab89a; line-height: 1.6; margin-bottom: 14px; }
+  .module-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 3px 10px; border-radius: 99px; }
+  .tag-red    { background: rgba(200,16,46,0.12);  color: #f87171; }
+  .tag-orange { background: rgba(217,119,6,0.12);  color: #fbbf24; }
+  .tag-green  { background: rgba(10,92,66,0.18);   color: #4ade80; }
 
   /* ── INSTALL ── */
-  .install-section {
-    background: rgba(10,92,66,0.08);
-    border: 1px solid rgba(10,92,66,0.2);
-    border-radius: 20px;
-    padding: 48px;
-    margin: 0 24px 80px;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+  .install-wrap {
+    background: linear-gradient(135deg, rgba(10,92,66,0.12) 0%, rgba(10,92,66,0.04) 100%);
+    border: 1px solid rgba(10,92,66,0.22); border-radius: 24px;
+    padding: 56px 48px; max-width: 900px; margin: 0 auto 80px;
   }
-  .install-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-top: 32px;
+  .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  @media(max-width:720px) { .install-grid { grid-template-columns: 1fr; } .nav-links { display: none; } .nav-mobile-btn { display: block; } }
+  .install-steps { display: flex; flex-direction: column; gap: 20px; margin-top: 28px; }
+  .istep { display: flex; align-items: flex-start; gap: 16px; }
+  .istep-num {
+    width: 34px; height: 34px; border-radius: 99px; background: var(--green);
+    color: #fff; font-size: 14px; font-weight: 800; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; margin-top: 2px;
   }
-  .install-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
+  .istep-body h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .istep-body p  { font-size: 13px; color: #7ab89a; line-height: 1.55; }
+  code { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 2px 8px; font-size: 12px; color: #86efac; font-family: 'Courier New', monospace; }
+
+  .install-right h3 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .install-right > p { font-size: 13px; color: #7ab89a; margin-bottom: 20px; }
+  .system-reqs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .req { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #94a3b8; }
+  .req-ok { color: #4ade80; font-weight: 800; }
+  .req-warn { color: var(--yellow); font-weight: 800; }
+
+  .download-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 15px; background: var(--green); color: #fff;
+    border: none; border-radius: 12px; font: 800 16px var(--font);
+    text-decoration: none; cursor: pointer; transition: all 0.18s;
+    box-shadow: 0 4px 20px rgba(10,92,66,.4);
   }
-  .step-num {
-    width: 32px; height: 32px;
-    border-radius: 99px;
-    background: var(--green);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
+  .download-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(10,92,66,.55); }
+  .download-note { font-size: 11px; color: #4a7c5f; margin-top: 10px; text-align: center; }
+
+  /* ── STATS ── */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: rgba(255,255,255,.05);
+    border-radius: 16px; overflow: hidden; margin-bottom: 80px;
+    max-width: 860px; margin-left: auto; margin-right: auto;
   }
-  .step-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .step-content p  { font-size: 13px; color: #7ab89a; }
-  .step-content code {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 12px;
-    color: #a3e4c4;
-    font-family: 'Courier New', monospace;
+  .stat-item { background: var(--dark); padding: 36px 24px; text-align: center; }
+  .stat-num { font-family: var(--display); font-size: 48px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .stat-label { font-size: 12px; color: #4a7c5f; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
+
+  /* ── FAQ ── */
+  .faq { max-width: 720px; margin: 0 auto 80px; padding: 0 24px; }
+  .faq-item { border-bottom: 1px solid rgba(255,255,255,.07); }
+  .faq-q {
+    width: 100%; background: none; border: none; color: #fff;
+    text-align: left; padding: 20px 0; font: 700 15px var(--font);
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
-  .install-download {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 28px;
-    background: var(--green);
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 800;
-    text-decoration: none;
-    transition: opacity 0.15s;
+  .faq-q:hover { color: #7ab89a; }
+  .faq-icon { font-size: 18px; color: var(--green); transition: transform 0.2s; flex-shrink: 0; }
+  .faq-a { font-size: 14px; color: #7ab89a; line-height: 1.7; padding-bottom: 18px; display: none; }
+  .faq-item.open .faq-a { display: block; }
+  .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+  /* ── CTA FINAL ── */
+  .cta-final {
+    text-align: center; padding: 80px 24px;
+    background: linear-gradient(180deg, transparent 0%, rgba(10,92,66,0.1) 100%);
+    border-top: 1px solid rgba(255,255,255,.05);
   }
-  .install-download:hover { opacity: 0.85; }
+  .cta-final h2 { font-family: var(--display); font-size: clamp(28px,4vw,46px); font-weight: 800; margin-bottom: 16px; }
+  .cta-final p  { font-size: 16px; color: #7ab89a; margin-bottom: 36px; }
 
   /* ── FOOTER ── */
   footer {
-    text-align: center;
-    padding: 32px 24px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    color: #334155;
-    font-size: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 48px; border-top: 1px solid rgba(255,255,255,.05);
+    font-size: 12px; color: #334155; flex-wrap: wrap; gap: 12px;
   }
   footer a { color: #4a7c5f; text-decoration: none; }
   footer a:hover { color: #7ab89a; }
+  .footer-links { display: flex; gap: 20px; }
 </style>
 </head>
 <body>
 
+<!-- NAV -->
 <nav>
-  <a class="nav-logo" href="#">
+  <a class="nav-logo" href="landing.html">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
       <path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/>
       <path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <span class="nav-logo-text">Vig<span>IA</span></span>
+    <span class="logo-text">Vig<span>IA</span></span>
   </a>
   <div class="nav-links">
-    <a href="prototype/index.html">Demo</a>
+    <a href="#demo">Démo</a>
+    <a href="#modules">Modules</a>
     <a href="#installer">Installer</a>
+    <a href="#faq">FAQ</a>
     <a href="https://github.com/efoka24-ops/vegia" target="_blank">GitHub</a>
-    <a href="prototype/index.html" class="nav-cta">Tester le prototype →</a>
+    <a href="index.html" class="nav-cta">Tester le prototype →</a>
   </div>
+  <button class="nav-mobile-btn" onclick="document.querySelector('.nav-links').style.display = document.querySelector('.nav-links').style.display === 'flex' ? 'none' : 'flex'">☰</button>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-      <circle cx="6" cy="6" r="5" fill="#0A5C42"/>
-      <path d="M3.5 6l2 2 3-3.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    Prototype v0.1.0 · Fait pour le Cameroun
-  </div>
-  <h1>Protégez-vous des <em>deepfakes</em> et arnaques sur les réseaux sociaux</h1>
-  <p>VigIA analyse vidéos, liens, textes et comptes directement dans votre fil d'actualité — en temps réel, sans quitter la page.</p>
+  <div class="hero-glow"></div>
+  <div class="hero-badge"><span class="pulse"></span> Prototype bêta · Cameroun</div>
+  <h1>Protégez-vous des <em>deepfakes</em><br>et arnaques en ligne</h1>
+  <p class="hero-sub">VigIA analyse vidéos, liens, textes et comptes directement dans votre fil d'actualité — en temps réel, sans quitter la page.</p>
   <div class="hero-actions">
-    <a href="prototype/index.html" class="btn-primary">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/>
-        <path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+    <a href="index.html" class="btn btn-primary btn-lg">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Voir le prototype interactif
     </a>
-    <a href="#installer" class="btn-secondary">
-      ↓ Installer l'extension
-    </a>
+    <a href="#installer" class="btn btn-ghost btn-lg">↓ Installer l'extension</a>
   </div>
   <div class="platforms">
-    <span class="platform-chip">🔵 Facebook</span>
-    <span class="platform-chip">🔷 LinkedIn</span>
-    <span class="platform-chip">🐦 X / Twitter</span>
-    <span class="platform-chip">💬 WhatsApp Web</span>
+    <span class="chip">🔵 Facebook</span>
+    <span class="chip">🔷 LinkedIn</span>
+    <span class="chip">🐦 X / Twitter</span>
+    <span class="chip">💬 WhatsApp Web</span>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section class="section">
-  <div class="section-label">Ce que VigIA détecte</div>
-  <div class="section-title">4 modules de protection<br>intégrés dans votre navigateur</div>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">🎬</div>
+<!-- STATS -->
+<div style="padding: 0 24px; max-width:860px; margin: 0 auto 0;">
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="stat-num" style="color:#4ade80;">4</div>
+      <div class="stat-label">Modules IA</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:#F2B705;">4</div>
+      <div class="stat-label">Plateformes</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:#f87171;">0</div>
+      <div class="stat-label">Données envoyées</div>
+    </div>
+  </div>
+</div>
+
+<!-- DEMO INTERACTIVE -->
+<section id="demo" class="demo-section" style="padding-top:80px;">
+  <div style="text-align:center;margin-bottom:36px;">
+    <div class="section-eyebrow">Démo interactive</div>
+    <div class="section-title" style="margin-bottom:8px;">Voyez VigIA en action</div>
+    <p style="color:#7ab89a;font-size:15px;">Cliquez sur le bouton dans la simulation ci-dessous</p>
+  </div>
+  <div class="demo-frame">
+    <div class="demo-bar">
+      <div style="display:flex;gap:7px;margin-right:12px;">
+        <div class="demo-dot" style="background:#ff5f57;"></div>
+        <div class="demo-dot" style="background:#febc2e;"></div>
+        <div class="demo-dot" style="background:#28c840;"></div>
+      </div>
+      <div class="demo-url">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#4a7c5f"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        facebook.com/fil
+      </div>
+      <!-- Bouton VigIA dans la barre -->
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;background:#0A5C42;border-radius:99px;padding:6px 14px 6px 9px;cursor:pointer;" onclick="triggerDemoPopup()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="color:#fff;font-weight:800;font-size:13px;font-family:var(--font);">Vig<span style="color:#F2B705;">IA</span></span>
+        <span id="demoBadge" style="display:none;background:#C8102E;color:#fff;font-size:11px;font-weight:800;border-radius:99px;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 4px;">3</span>
+      </div>
+    </div>
+    <div class="demo-content">
+      <!-- Post simulé -->
+      <div class="demo-post">
+        <div class="demo-post-header">
+          <div class="demo-avatar" style="background:#dfe3ea;color:#8a8d91;">A2</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#11201A;">Actu Cameroun 237</div>
+            <div style="font-size:11px;color:#8a8d91;">il y a 2 h · 🌍 Public</div>
+          </div>
+        </div>
+        <div class="demo-post-text">🔴 URGENT — Le responsable annonce une mesure choc qui change tout. À partager massivement !</div>
+        <div class="demo-video">
+          <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.5);color:#fff;font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:4px;">VIDÉO</div>
+          <div class="demo-play"></div>
+        </div>
+        <div class="demo-cta-area">
+          <div id="demoBtn">
+            <button class="demo-cta-btn" onclick="runDemoVerification()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Vérifier cette vidéo avec VigIA
+            </button>
+          </div>
+          <div id="demoSpinner" style="display:none;">
+            <div style="display:flex;align-items:center;gap:9px;color:#0A5C42;font:700 13px var(--font);">
+              <span style="width:14px;height:14px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;flex-shrink:0;"></span>
+              Analyse Vérif-Média en cours…
+            </div>
+            <div style="position:relative;height:4px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;">
+              <div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:scan 1s linear infinite;"></div>
+            </div>
+          </div>
+          <div id="demoResult" style="display:none;background:#FCEBEC;border-left:4px solid #C8102E;border-radius:10px;padding:12px 14px;animation:slideIn .3s ease;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+              <span style="font-size:16px;">⚠️</span>
+              <span style="font:800 10px var(--font);letter-spacing:.12em;color:#C8102E;text-transform:uppercase;">VÉRIF-MÉDIA</span>
+              <span style="margin-left:auto;font-family:var(--display);font-size:22px;font-weight:800;color:#C8102E;">82%</span>
+            </div>
+            <div style="font:700 14px var(--font);color:#11201A;margin-bottom:3px;">Vidéo probablement manipulée par IA.</div>
+            <div style="font-size:12px;color:#65676B;">Aucune source officielle ne confirme cette annonce.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;margin-top:20px;font-size:13px;color:#4a7c5f;">
+    ↑ Simulation — <a href="index.html" style="color:#7ab89a;text-decoration:underline;">ouvrir le prototype complet →</a>
+  </p>
+</section>
+
+<!-- MODULES -->
+<section id="modules" class="section">
+  <div class="section-eyebrow">Ce que VigIA détecte</div>
+  <div class="section-title">4 modules de protection<br><span>intégrés dans votre navigateur</span></div>
+  <div class="modules-grid">
+    <div class="module-card">
+      <div class="module-icon green">🎬</div>
       <h3>Vérif-Média</h3>
-      <p>Détecte les vidéos et images manipulées par IA (deepfakes). Score de probabilité de falsification en pourcentage.</p>
+      <p>Détecte les vidéos et images manipulées par IA (deepfakes). Score de probabilité de falsification affiché en temps réel.</p>
+      <span class="module-tag tag-red">Deepfake · GAN · Face-swap</span>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">📰</div>
+    <div class="module-card">
+      <div class="module-icon yellow">📰</div>
       <h3>Vérif-Info</h3>
-      <p>Fact-checking automatique des textes et publications. Croise avec les bases de données de désinformation connues.</p>
+      <p>Fact-checking automatique des textes et publications. Détecte les termes sensationnalistes et crosse avec les bases connues.</p>
+      <span class="module-tag tag-orange">Désinformation · Rumeurs</span>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔗</div>
+    <div class="module-card">
+      <div class="module-icon red">🔗</div>
       <h3>Vérif-Lien</h3>
-      <p>Analyse chaque URL avant que vous cliquiez. Détecte le phishing, les scams Mobile Money et les arnaques connues.</p>
+      <p>Analyse chaque URL avant que vous cliquiez. Détecte le phishing, les scams Mobile Money et les liens malveillants raccourcis.</p>
+      <span class="module-tag tag-red">Phishing · Mobile Money · Scam</span>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">👤</div>
+    <div class="module-card">
+      <div class="module-icon blue">👤</div>
       <h3>Vérif-Compte</h3>
       <p>Vérifie si un compte se faisant passer pour une institution officielle camerounaise est réellement authentique.</p>
+      <span class="module-tag tag-green">Usurpation · Faux comptes officiels</span>
+    </div>
+  </div>
+</section>
+
+<!-- COMMENT ÇA MARCHE -->
+<section class="section" style="padding-top:0;">
+  <div class="section-eyebrow">Fonctionnement</div>
+  <div class="section-title">Simple pour l'utilisateur,<br><span>puissant sous le capot</span></div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <span class="step-icon">👁</span>
+      <h3>Détection automatique</h3>
+      <p>VigIA scanne silencieusement votre fil d'actualité et repère chaque vidéo, lien, texte et profil suspect.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <span class="step-icon">🔍</span>
+      <h3>Bouton "Vérifier"</h3>
+      <p>Un bouton contextualisé apparaît sous chaque élément détecté. Vous choisissez quand vérifier.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <span class="step-icon">⚡</span>
+      <h3>Analyse IA</h3>
+      <p>Les 4 modules analysent le contenu en 1–2 secondes via notre moteur de détection.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <span class="step-icon">✅</span>
+      <h3>Résultat clair</h3>
+      <p>Un verdict coloré (vert / orange / rouge) avec explication s'affiche directement sous le contenu.</p>
     </div>
   </div>
 </section>
 
 <!-- INSTALL -->
-<section id="installer" class="install-section">
-  <div class="section-label">Installation manuelle</div>
-  <div class="section-title" style="margin-bottom:8px;">Testez l'extension en 3 étapes</div>
-  <p style="color:#7ab89a;font-size:14px;margin-bottom:4px;">Chrome ou Edge · Aucun compte requis · Données locales uniquement</p>
-
-  <div class="install-steps">
-    <div class="install-step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <h4>Télécharger l'extension</h4>
-        <p>Cliquez sur le bouton ci-dessous pour télécharger <code>vigia-extension.zip</code></p>
+<section id="installer" style="padding: 0 24px 80px;">
+  <div class="install-wrap">
+    <div class="install-grid">
+      <div>
+        <div class="section-eyebrow">Installation</div>
+        <div class="section-title" style="font-size:clamp(24px,3vw,34px);margin-bottom:4px;">Prêt en<br>3 étapes</div>
+        <p style="color:#7ab89a;font-size:13px;margin-bottom:0;">Chrome ou Edge · Gratuit · Aucun compte requis</p>
+        <div class="install-steps">
+          <div class="istep">
+            <div class="istep-num">1</div>
+            <div class="istep-body">
+              <h4>Télécharger le ZIP</h4>
+              <p>Cliquez sur le bouton ci-contre et décompressez <code>vigia-extension.zip</code> dans un dossier.</p>
+            </div>
+          </div>
+          <div class="istep">
+            <div class="istep-num">2</div>
+            <div class="istep-body">
+              <h4>Ouvrir les extensions Chrome</h4>
+              <p>Allez sur <code>chrome://extensions</code> → activez <strong>Mode développeur</strong> en haut à droite.</p>
+            </div>
+          </div>
+          <div class="istep">
+            <div class="istep-num">3</div>
+            <div class="istep-body">
+              <h4>Charger l'extension</h4>
+              <p>Cliquez <strong>"Charger l'extension non empaquetée"</strong> → sélectionnez le dossier extrait du ZIP.</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="install-step">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <h4>Activer le mode développeur dans Chrome</h4>
-        <p>Ouvrez <code>chrome://extensions</code> → activez <strong>Mode développeur</strong> (en haut à droite) → cliquez <strong>Charger l'extension non empaquetée</strong> → sélectionnez le dossier extrait du ZIP</p>
-      </div>
-    </div>
-    <div class="install-step">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <h4>Naviguer sur Facebook ou LinkedIn</h4>
-        <p>Le bouton VigIA vert apparaît automatiquement dans la barre d'outils. Des boutons <strong>"Vérifier avec VigIA"</strong> s'affichent sous chaque vidéo, lien et profil détecté.</p>
+      <div class="install-right">
+        <h3>Télécharger VigIA</h3>
+        <p>Extension Chrome/Edge · v0.1.0 bêta</p>
+        <div class="system-reqs">
+          <div class="req"><span class="req-ok">✓</span> Chrome 88+ ou Edge 88+</div>
+          <div class="req"><span class="req-ok">✓</span> Windows, macOS, Linux</div>
+          <div class="req"><span class="req-ok">✓</span> Facebook, LinkedIn, X, WhatsApp</div>
+          <div class="req"><span class="req-warn">~</span> Moteur IA simulé (bêta)</div>
+        </div>
+        <a href="https://github.com/efoka24-ops/vegia/releases/latest/download/vigia-extension.zip"
+           class="download-btn" id="downloadBtn">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Télécharger vigia-extension.zip
+        </a>
+        <p class="download-note">⚠ Version bêta — résultats d'analyse simulés</p>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);">
+          <p style="font-size:12px;color:#4a7c5f;line-height:1.7;">Données traitées <strong style="color:#7ab89a;">localement</strong> — aucune donnée personnelle n'est envoyée à nos serveurs en version bêta.</p>
+        </div>
       </div>
     </div>
   </div>
+</section>
 
-  <a href="https://github.com/efoka24-ops/vegia/releases/latest/download/vigia-extension.zip" class="install-download" id="downloadBtn">
-    ⬇ Télécharger vigia-extension.zip
-  </a>
-  <p style="font-size:11px;color:#4a7c5f;margin-top:12px;">⚠ Version bêta — le moteur IA backend est simulé. Les résultats sont des démos.</p>
+<!-- FAQ -->
+<section id="faq" class="faq">
+  <div style="text-align:center;margin-bottom:40px;">
+    <div class="section-eyebrow">FAQ</div>
+    <div class="section-title">Questions fréquentes</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Est-ce que VigIA lit mes messages privés ?
+      <span class="faq-icon">+</span>
+    </button>
+    <div class="faq-a">Non. VigIA ne lit que les éléments visibles dans votre fil public (images, textes, liens). Il n'accède pas à vos messages privés, mots de passe ou données de compte. Tout est traité localement dans votre navigateur.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Les résultats sont-ils fiables à 100% ?
+      <span class="faq-icon">+</span>
+    </button>
+    <div class="faq-a">Non. En version bêta, le moteur IA est simulé. Les vrais modèles de détection deepfake (EfficientNet fine-tuné sur FaceForensics++) et de fact-checking seront intégrés en v1.0. Traitez les résultats actuels comme indicatifs.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      VigIA fonctionne-t-il sur mobile ?
+      <span class="faq-icon">+</span>
+    </button>
+    <div class="faq-a">Non, pour l'instant VigIA est une extension Chrome/Edge pour ordinateur. Une version mobile (Android, iOS) est prévue une fois le moteur IA validé. Le prototype interactif fonctionne sur mobile.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Comment signaler une fausse alerte ?
+      <span class="faq-icon">+</span>
+    </button>
+    <div class="faq-a">Cliquez sur le bouton "Signaler" qui apparaît sous chaque résultat d'analyse. Votre signalement aide à améliorer le modèle. Vous pouvez aussi signaler via <a href="https://github.com/efoka24-ops/vegia/issues" target="_blank" style="color:#7ab89a;">GitHub Issues</a>.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Pourquoi "Mode développeur" dans Chrome ?
+      <span class="faq-icon">+</span>
+    </button>
+    <div class="faq-a">En version bêta, VigIA n'est pas encore publié sur le Chrome Web Store. Le mode développeur permet de charger des extensions non vérifiées. Une soumission au Chrome Web Store est prévue après la validation du prototype.</div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-final">
+  <h2>Prêt à vous protéger ?</h2>
+  <p>Testez le prototype ou installez l'extension maintenant — c'est gratuit.</p>
+  <div class="hero-actions">
+    <a href="index.html" class="btn btn-primary btn-lg">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Tester le prototype
+    </a>
+    <a href="#installer" class="btn btn-ghost btn-lg">↓ Installer l'extension</a>
+  </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <p>VigIA v0.1.0 · Prototype · <a href="mailto:efoka24@gmail.com">efoka24@gmail.com</a> · <a href="https://github.com/efoka24-ops/vegia" target="_blank">GitHub</a></p>
-  <p style="margin-top:6px;">Conçu pour protéger les utilisateurs camerounais · Données traitées localement</p>
+  <a href="landing.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span style="color:#4a7c5f;font-weight:700;">VigIA</span>
+  </a>
+  <div class="footer-links">
+    <a href="index.html">Prototype</a>
+    <a href="https://github.com/efoka24-ops/vegia" target="_blank">GitHub</a>
+    <a href="mailto:efoka24@gmail.com">Contact</a>
+  </div>
+  <span>VigIA v0.1.0 · Cameroun · Données locales uniquement</span>
 </footer>
 
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes scan { 0%{left:-40%} 100%{left:100%} }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+</style>
+
+<script>
+  // ── Demo interactive ──────────────────────────────────────────
+  function runDemoVerification() {
+    document.getElementById('demoBtn').style.display = 'none';
+    document.getElementById('demoSpinner').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('demoSpinner').style.display = 'none';
+      document.getElementById('demoResult').style.display = 'block';
+      const badge = document.getElementById('demoBadge');
+      badge.style.display = 'flex';
+    }, 1800);
+  }
+
+  function triggerDemoPopup() {
+    const badge = document.getElementById('demoBadge');
+    if (badge.style.display === 'flex') {
+      badge.style.display = 'none';
+    } else {
+      if (document.getElementById('demoResult').style.display === 'block') {
+        badge.style.display = 'flex';
+      } else {
+        runDemoVerification();
+      }
+    }
+  }
+
+  // ── FAQ ───────────────────────────────────────────────────────
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+
+  // ── Scroll actif sur les liens de nav ─────────────────────────
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 100) current = s.id; });
+    navLinks.forEach(a => {
+      a.style.color = a.getAttribute('href') === '#' + current ? '#fff' : '';
+    });
+  }, { passive: true });
+</script>
 </body>
 </html>
