@@ -1,4 +1,4 @@
-const API_BASE = 'https://api.vigia.cm/api/v1';
+const API_BASE = 'http://localhost:8000/api/v1';
 const BLACKLIST_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 
 // ---------- Messages depuis le content script ----------

@@ -62,14 +62,14 @@ async function runVerification(element, context, wrapper) {
   const payload = buildPayload(element, context);
   if (!payload) return;
 
-  setBadge(wrapper, 'loading', '...');
+  setBadge(wrapper, 'loading');
 
   chrome.runtime.sendMessage({ type: 'VERIFY', payload }, (result) => {
     if (chrome.runtime.lastError) {
-      setBadge(wrapper, 'error', '!');
+      setBadge(wrapper, 'error');
       return;
     }
-    renderResult(wrapper, result);
+    renderResult(wrapper, result, context);
   });
 }
 
@@ -105,27 +105,47 @@ function buildPayload(element, context) {
 
 // ---------- Rendu du badge + tooltip ----------
 
-function setBadge(wrapper, level, text) {
+const BADGE_CFG = {
+  green:   { icon: '✓', label: 'Fiable' },
+  orange:  { icon: '⚠', label: 'Douteux' },
+  red:     { icon: '✗', label: 'Suspect' },
+  loading: { icon: '',  label: '...' },
+  error:   { icon: '!', label: 'Erreur' },
+};
+
+const MODULE_META = {
+  media:   { icon: '🖼', name: 'Image / Vidéo' },
+  info:    { icon: '📰', name: 'Fact-check' },
+  link:    { icon: '🔗', name: 'Lien' },
+  account: { icon: '👤', name: 'Compte' },
+};
+
+function setBadge(wrapper, level, _unused) {
   let badge = wrapper.querySelector('.vigia-badge');
   if (!badge) {
     badge = document.createElement('div');
-    badge.className = 'vigia-badge';
     wrapper.appendChild(badge);
   }
+  const cfg = BADGE_CFG[level] || BADGE_CFG.error;
   badge.className = `vigia-badge vigia-badge--${level}`;
-  badge.textContent = text;
+  badge.textContent = cfg.label;
+  return badge;
 }
 
-function renderResult(wrapper, result) {
-  const icons = { green: '✓', orange: '⚠', red: '✗', error: '!' };
-  const labels = { green: 'Fiable', orange: 'Douteux', red: 'Suspect', error: 'Erreur' };
+function renderResult(wrapper, result, context) {
   const level = result.level || 'error';
+  const badge = setBadge(wrapper, level);
 
-  setBadge(wrapper, level, `${icons[level] || '?'} ${labels[level] || ''}`);
+  // Sauvegarde dans l'historique
+  if (level !== 'loading' && level !== 'error') {
+    const mod = Object.values(result.modules || {})[0];
+    saveHistory({ level, type: context || 'image', label: mod?.label || result.explanation || '' });
+    updateStats(level);
+  }
 
-  const badge = wrapper.querySelector('.vigia-badge');
   badge.addEventListener('click', (e) => {
     e.stopPropagation();
+    e.preventDefault();
     toggleTooltip(badge, result);
   });
 }
@@ -138,46 +158,81 @@ function toggleTooltip(badge, result) {
   tt.className = 'vigia-tooltip';
   tt.innerHTML = buildTooltipHTML(result);
 
-  tt.querySelector('.vigia-tooltip__btn--sources')?.addEventListener('click', () => {
+  tt.querySelector('.btn-sources')?.addEventListener('click', () => {
     const src = result.sources?.[0];
     if (src) window.open(src, '_blank');
+    tt.remove();
   });
 
-  tt.querySelector('.vigia-tooltip__btn--report')?.addEventListener('click', () => {
+  tt.querySelector('.btn-report')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'REPORT', payload: { result, url: location.href } });
     tt.remove();
   });
 
   badge.appendChild(tt);
-
-  // Ferme le tooltip au clic extérieur
   setTimeout(() => {
     document.addEventListener('click', () => tt.remove(), { once: true });
   }, 0);
 }
 
-function buildTooltipHTML(result) {
-  const mods = result.modules || {};
-  const moduleLabels = { media: '🖼 Image', info: '📰 Info', link: '🔗 Lien', account: '👤 Compte' };
+function scoreClass(score) {
+  if (score == null) return '';
+  if (score >= 0.7)  return 'vigia-tooltip__score--high';
+  if (score >= 0.35) return 'vigia-tooltip__score--mid';
+  return 'vigia-tooltip__score--low';
+}
 
-  const rows = Object.entries(moduleLabels).map(([key, label]) => {
+function buildTooltipHTML(result) {
+  const mods  = result.modules || {};
+  const level = result.level || 'error';
+  const verdicts = { green: 'Fiable', orange: 'Douteux', red: 'Suspect' };
+
+  const rows = Object.entries(MODULE_META).map(([key, meta]) => {
     const mod = mods[key];
-    const val = mod ? mod.label : 'non analysé';
-    return `<div class="vigia-tooltip__row">
-      <span class="vigia-tooltip__label">${label}</span>
-      <span>${val}</span>
-    </div>`;
+    if (!mod) return '';
+    const sc = mod.score != null ? `<span class="vigia-tooltip__score ${scoreClass(mod.score)}">${Math.round(mod.score * 100)}%</span>` : '';
+    return `
+      <div class="vigia-tooltip__row">
+        <span class="vigia-tooltip__module-icon">${meta.icon}</span>
+        <div class="vigia-tooltip__module-info">
+          <div class="vigia-tooltip__module-name">${meta.name}</div>
+          <div class="vigia-tooltip__module-label">${mod.label || '—'}</div>
+        </div>
+        ${sc}
+      </div>`;
   }).join('');
 
+  const hasSources = result.sources?.length > 0;
+
   return `
-    <div class="vigia-tooltip__title">VigIA — Analyse</div>
-    ${rows}
-    <div style="margin-top:8px;font-size:11px;color:#94a3b8">${result.explanation || ''}</div>
+    <div class="vigia-tooltip__header">
+      <span class="vigia-tooltip__header-icon"></span>
+      <span>VigIA</span>
+      <span class="vigia-tooltip__verdict vigia-tooltip__verdict--${level}">${verdicts[level] || level}</span>
+    </div>
+    <div class="vigia-tooltip__body">${rows || '<div style="color:#64748b;font-size:11px;padding:4px 0">Aucun module activé</div>'}</div>
+    ${result.explanation ? `<div class="vigia-tooltip__explanation">${result.explanation}</div>` : ''}
     <div class="vigia-tooltip__actions">
-      <button class="vigia-tooltip__btn vigia-tooltip__btn--sources">Voir sources</button>
-      <button class="vigia-tooltip__btn vigia-tooltip__btn--report">Signaler</button>
+      ${hasSources ? `<button class="vigia-tooltip__btn vigia-tooltip__btn--primary btn-sources">Voir sources</button>` : ''}
+      <button class="vigia-tooltip__btn btn-report">Signaler</button>
     </div>
   `;
+}
+
+// ---------- Historique & stats ----------
+
+async function saveHistory(entry) {
+  const { history = [] } = await chrome.storage.local.get('history');
+  history.push({ ...entry, ts: Date.now() });
+  if (history.length > 50) history.splice(0, history.length - 50);
+  chrome.storage.local.set({ history });
+}
+
+async function updateStats(level) {
+  const key = { green: 'statsGreen', orange: 'statsOrange', red: 'statsRed' }[level];
+  if (!key) return;
+  const data = await chrome.storage.local.get(key);
+  chrome.storage.local.set({ [key]: (data[key] || 0) + 1 });
 }
 
 // ---------- Observer (infinite scroll) ----------

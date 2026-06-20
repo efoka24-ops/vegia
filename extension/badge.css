@@ -1,103 +1,306 @@
+/* ── VigIA Design System ──────────────────────────────────── */
+:root {
+  --vig-green:  #16a34a;
+  --vig-orange: #d97706;
+  --vig-red:    #dc2626;
+  --vig-dark:   #0f172a;
+  --vig-card:   #1e293b;
+  --vig-border: #334155;
+  --vig-muted:  #64748b;
+  --vig-text:   #f1f5f9;
+  --vig-radius: 6px;
+  --vig-font:   -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+/* ── Wrapper autour de chaque élément surveillé ─────────────── */
 .vigia-wrapper {
   position: relative;
   display: inline-block;
+  line-height: 0;
 }
 
+/* ── Bouton "Vérifier" (apparaît au survol) ─────────────────── */
 .vigia-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 9999;
-  background: rgba(15, 23, 42, 0.85);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-family: system-ui, sans-serif;
+  top: 8px;
+  left: 8px;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f1f5f9;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  font: 600 11px/1 var(--vig-font);
+  letter-spacing: 0.3px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.vigia-btn::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-image: url("icons/vigia.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 .vigia-wrapper:hover .vigia-btn {
   opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
-/* Badge résultat */
+.vigia-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255,255,255,0.22);
+}
+
+/* ── Badge résultat ─────────────────────────────────────────── */
+@keyframes vigia-pop {
+  0%   { transform: scale(0.7) translateY(4px); opacity: 0; }
+  60%  { transform: scale(1.08) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
 .vigia-badge {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
-  z-index: 9999;
+  bottom: 8px;
+  right: 8px;
+  z-index: 9991;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: system-ui, sans-serif;
-  font-weight: 600;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font: 700 11px/1 var(--vig-font);
+  letter-spacing: 0.4px;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08);
   user-select: none;
+  animation: vigia-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+  white-space: nowrap;
 }
 
-.vigia-badge--green  { background: #22c55e; color: #fff; }
-.vigia-badge--orange { background: #f59e0b; color: #fff; }
-.vigia-badge--red    { background: #ef4444; color: #fff; }
-.vigia-badge--loading { background: #6b7280; color: #fff; }
-.vigia-badge--error  { background: #374151; color: #9ca3af; }
+.vigia-badge--green  {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+}
+.vigia-badge--orange {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+}
+.vigia-badge--red    {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+}
+.vigia-badge--loading {
+  background: rgba(30,41,59,0.9);
+  color: #94a3b8;
+  animation: none;
+}
+.vigia-badge--error  {
+  background: rgba(30,41,59,0.85);
+  color: #64748b;
+  animation: none;
+}
 
-/* Tooltip */
+/* Icône dans le badge */
+.vigia-badge::before {
+  content: '';
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  background-image: url("icons/vigia.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  filter: brightness(10);
+  flex-shrink: 0;
+}
+.vigia-badge--loading::before,
+.vigia-badge--error::before { opacity: 0.4; }
+
+/* Spinner pour l'état chargement */
+@keyframes vigia-spin { to { transform: rotate(360deg); } }
+.vigia-badge--loading::before {
+  background-image: none;
+  border: 2px solid #475569;
+  border-top-color: #94a3b8;
+  border-radius: 50%;
+  animation: vigia-spin 0.7s linear infinite;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────── */
+@keyframes vigia-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .vigia-tooltip {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   right: 0;
   z-index: 99999;
-  background: #1e293b;
-  color: #f1f5f9;
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 12px;
-  font-family: system-ui, sans-serif;
-  min-width: 220px;
+  min-width: 240px;
   max-width: 300px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  line-height: 1.5;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+  font: 12px/1.5 var(--vig-font);
+  color: #f1f5f9;
+  animation: vigia-fade-up 0.18s ease both;
+  overflow: hidden;
 }
 
-.vigia-tooltip__title {
+/* Flèche */
+.vigia-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  border-bottom: 1px solid #1e293b;
+  transform: rotate(45deg);
+}
+
+.vigia-tooltip__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1e293b;
   font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #334155;
-  padding-bottom: 6px;
+  font-size: 12px;
+}
+
+.vigia-tooltip__header-icon {
+  width: 18px;
+  height: 18px;
+  background-image: url("icons/vigia.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+.vigia-tooltip__verdict {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.vigia-tooltip__verdict--green  { background: rgba(22,163,74,.2);  color: #4ade80; }
+.vigia-tooltip__verdict--orange { background: rgba(217,119,6,.2);  color: #fbbf24; }
+.vigia-tooltip__verdict--red    { background: rgba(220,38,38,.2);  color: #f87171; }
+
+.vigia-tooltip__body {
+  padding: 10px 14px;
 }
 
 .vigia-tooltip__row {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.vigia-tooltip__row:last-child { border-bottom: none; }
+
+.vigia-tooltip__module-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  margin-top: 1px;
 }
 
-.vigia-tooltip__label { color: #94a3b8; }
+.vigia-tooltip__module-info { flex: 1; min-width: 0; }
+
+.vigia-tooltip__module-name {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1px;
+}
+
+.vigia-tooltip__module-label {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.vigia-tooltip__score {
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.vigia-tooltip__score--high { color: #f87171; background: rgba(220,38,38,0.12); }
+.vigia-tooltip__score--mid  { color: #fbbf24; background: rgba(217,119,6,0.12); }
+.vigia-tooltip__score--low  { color: #4ade80; background: rgba(22,163,74,0.12); }
+
+.vigia-tooltip__explanation {
+  margin: 8px 14px 0;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.5;
+  border-left: 2px solid #334155;
+}
 
 .vigia-tooltip__actions {
-  margin-top: 10px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid #1e293b;
 }
 
 .vigia-tooltip__btn {
   flex: 1;
-  padding: 5px 8px;
-  border: none;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 6px 10px;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  font: 600 11px var(--vig-font);
   cursor: pointer;
+  background: #1e293b;
+  color: #cbd5e1;
+  transition: all 0.15s;
+  text-align: center;
+}
+.vigia-tooltip__btn:hover {
   background: #334155;
+  border-color: #475569;
   color: #f1f5f9;
 }
-
-.vigia-tooltip__btn:hover { background: #475569; }
+.vigia-tooltip__btn--primary {
+  background: #1d4ed8;
+  border-color: #2563eb;
+  color: #fff;
+}
+.vigia-tooltip__btn--primary:hover {
+  background: #2563eb;
+  border-color: #3b82f6;
+}

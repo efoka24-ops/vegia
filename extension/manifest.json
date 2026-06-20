@@ -5,9 +5,9 @@
   "version": "0.1.0",
   "description": "Détectez deepfakes, désinformation et arnaques sur les réseaux sociaux.",
   "icons": {
-    "16": "icons/vigia-16.png",
-    "48": "icons/vigia-48.png",
-    "128": "icons/vigia-128.png"
+    "16": "icons/vigia.svg",
+    "48": "icons/vigia.svg",
+    "128": "icons/vigia.svg"
   },
   "permissions": [
     "storage",
@@ -41,8 +41,8 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/vigia-16.png",
-      "48": "icons/vigia-48.png"
+      "16": "icons/vigia.svg",
+      "48": "icons/vigia.svg"
     }
   },
   "web_accessible_resources": [
