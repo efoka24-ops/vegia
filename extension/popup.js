@@ -18,6 +18,8 @@ const MOCK_DELAYS = { media: 1800, info: 1400, link: 1000, account: 1600 };
 // popup mod → content script context
 const MOD_TO_CTX = { media: 'videos', info: 'posts', link: 'links', account: 'profiles' };
 
+const SUPPORTED_HOSTS = ['facebook.com', 'twitter.com', 'x.com', 'linkedin.com', 'web.whatsapp.com'];
+
 const SEVERITY = { red: 3, orange: 2, green: 1, error: 0 };
 
 // ── Init ──────────────────────────────────────────────────────
@@ -74,6 +76,22 @@ function setModuleState(mod, state, result) {
   }
 }
 
+// ── Trouver l'onglet social actif ─────────────────────────────
+
+function findSocialTab(callback) {
+  // D'abord chercher l'onglet actif non-extension
+  chrome.tabs.query({ active: true, currentWindow: true }, ([active]) => {
+    const isReal = active?.url && SUPPORTED_HOSTS.some(h => active.url.includes(h));
+    if (isReal) { callback(active); return; }
+
+    // Si l'onglet actif est le popup lui-même → chercher dans tous les onglets
+    chrome.tabs.query({}, (allTabs) => {
+      const social = allTabs.find(t => t.url && SUPPORTED_HOSTS.some(h => t.url.includes(h)));
+      callback(social || null);
+    });
+  });
+}
+
 // ── Scan d'un module individuel ───────────────────────────────
 
 function scanModule(mod) {
@@ -81,12 +99,10 @@ function scanModule(mod) {
   setModuleState(mod, 'scanning');
   updateHeader();
 
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+  findSocialTab(tab => {
     if (!tab?.id) { runMock(mod); return; }
-
     chrome.tabs.sendMessage(tab.id, { type: 'SCAN_MODULE', context: MOD_TO_CTX[mod] }, resp => {
       if (chrome.runtime.lastError || !resp?.found) runMock(mod);
-      // Si found > 0 : résultat arrive via SCAN_RESULT
     });
   });
 }
@@ -100,48 +116,37 @@ function scanAll() {
   pending.forEach(m => setModuleState(m, 'scanning'));
   updateHeader();
 
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+  findSocialTab(tab => {
     if (!tab?.id) { pending.forEach(runMock); return; }
 
-    // 1. Demander au content script de lire la page
     chrome.tabs.sendMessage(tab.id, { type: 'SCAN_PAGE' }, page => {
       if (chrome.runtime.lastError || !page?.ok) {
-        // Content script absent (pas sur un site supporté) → mock
         pending.forEach(runMock);
         return;
       }
 
-      // 2. Analyser chaque module avec le contenu réel de la page
       if (pending.includes('info')) {
-        if (page.text && page.text.length > 15) {
-          analyzeAndUpdate('text', { text: page.text }, 'info', tab.id);
-        } else {
-          runMock('info');
-        }
+        page.text?.length > 15
+          ? analyzeAndUpdate('text', { text: page.text }, 'info', tab.id)
+          : runMock('info');
       }
 
       if (pending.includes('media')) {
-        if (page.hasMedia) {
-          analyzeAndUpdate('image', { image_url: tab.url || location.href }, 'media', tab.id);
-        } else {
-          runMock('media');
-        }
+        page.hasMedia
+          ? analyzeAndUpdate('image', { image_url: tab.url || '' }, 'media', tab.id)
+          : runMock('media');
       }
 
       if (pending.includes('link')) {
-        if (page.hasSuspLinks && page.firstSuspLink) {
-          analyzeAndUpdate('url', { url: page.firstSuspLink }, 'link', tab.id);
-        } else {
-          runMock('link');
-        }
+        page.hasSuspLinks && page.firstSuspLink
+          ? analyzeAndUpdate('url', { url: page.firstSuspLink }, 'link', tab.id)
+          : runMock('link');
       }
 
       if (pending.includes('account')) {
-        if (page.profileName) {
-          analyzeAndUpdate('account', { profile_name: page.profileName, profile_image_url: '' }, 'account', tab.id);
-        } else {
-          runMock('account');
-        }
+        page.profileName
+          ? analyzeAndUpdate('account', { profile_name: page.profileName, profile_image_url: '' }, 'account', tab.id)
+          : runMock('account');
       }
     });
   });
