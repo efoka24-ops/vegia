@@ -1,0 +1,42 @@
+name: Release — Package extension ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package extension
+        run: |
+          cd extension
+          zip -r ../vigia-extension.zip \
+            manifest.json background.js content.js badge.css \
+            popup.html popup.js icons/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: vigia-extension.zip
+          name: VigIA ${{ github.ref_name }}
+          body: |
+            ## Installation
+
+            1. Télécharger `vigia-extension.zip`
+            2. Décompresser dans un dossier
+            3. Chrome → `chrome://extensions` → **Mode développeur** ON
+            4. **Charger l'extension non empaquetée** → sélectionner le dossier
+
+            > ⚠ Version bêta — le moteur IA est simulé (mock). Les résultats sont des démos.
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -32,3 +32,6 @@ infra/volumes/
 chrome-profile/
 
 playwright-report/
+
+test-results/
+vigia-extension.zip
