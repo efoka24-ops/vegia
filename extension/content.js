@@ -41,6 +41,12 @@ const CTX_MODULE = {
   profiles: 'VÉRIF-COMPTE',
 };
 
+// Mapping context → clé module popup
+const CTX_TO_MOD = { images: 'media', posts: 'info', links: 'link', profiles: 'account' };
+
+// Icône bouclier inline (pas de dépendance URL)
+const SHIELD_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
 function detectSite() {
   const h = location.hostname;
   if (h.includes('facebook')) return 'facebook';
@@ -63,10 +69,11 @@ function attachButton(element, context) {
 
   const cta = document.createElement('div');
   cta.className = 'vigia-cta';
+  cta.dataset.vigiaContext = context; // permet au popup de cibler par type
 
   const btn = document.createElement('button');
   btn.className = 'vigia-btn';
-  btn.innerHTML = `<span class="vigia-btn-icon"></span>${CTX_LABELS[context] || 'Vérifier avec VigIA'}`;
+  btn.innerHTML = `${SHIELD_SVG}${CTX_LABELS[context] || 'Vérifier avec VigIA'}`;
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -86,11 +93,12 @@ async function runVerification(element, context, cta) {
   setCtaLoading(cta);
 
   chrome.runtime.sendMessage({ type: 'VERIFY', payload }, (result) => {
-    if (chrome.runtime.lastError) {
+    if (chrome.runtime.lastError || !result) {
       setCtaError(cta);
       return;
     }
     renderResult(cta, result, context);
+    notifyPopup(context, result);
   });
 }
 
@@ -123,6 +131,28 @@ function buildPayload(element, context) {
   return null;
 }
 
+// ---------- Notifier le popup du résultat ----------
+
+function notifyPopup(context, result) {
+  const mod   = CTX_TO_MOD[context];
+  const level = result.level || 'error';
+  if (!mod || level === 'error') return;
+
+  const mods    = result.modules || {};
+  const modData = Object.values(mods)[0];
+  const score   = modData?.score != null ? Math.round(modData.score * 100) : null;
+  const label   = modData?.label || result.explanation || '—';
+
+  let badge;
+  if (level === 'red')    badge = score != null ? `⚠ ${score}%` : '⚠ alerte';
+  else if (level === 'orange') badge = score != null ? `⚠ ${score}%` : '⚠ douteux';
+  else                    badge = '✓ RAS';
+
+  try {
+    chrome.runtime.sendMessage({ type: 'SCAN_RESULT', mod, result: { level, badge, label } });
+  } catch (_) {}
+}
+
 // ---------- États de la CTA ----------
 
 function setCtaLoading(cta) {
@@ -151,8 +181,6 @@ function renderResult(cta, result, context) {
   const detail = result.explanation || mod?.label || '';
 
   const icons = { red: '⚠️', orange: '⚠️', green: '✅', error: '❓' };
-  const colors = { red: '#C8102E', orange: '#d97706', green: '#0A5C42', error: '#64748b' };
-  const bgs    = { red: '#FCEBEC', orange: '#FFF8EC', green: '#EEF3F0', error: '#f8f8f8' };
 
   cta.innerHTML = `
     <div class="vigia-result vigia-result--${level}">
@@ -173,28 +201,31 @@ function renderResult(cta, result, context) {
     e.target.textContent = 'Signalé ✓';
     e.target.disabled = true;
   });
+}
 
-  if (level !== 'error') {
-    saveHistory({ level, type: context || 'image', label: mod?.label || result.explanation || '' });
-    updateStats(level);
+// ---------- Listener messages du popup ----------
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  // Popup demande de scanner tous les éléments détectés
+  if (msg.type === 'SCAN_ALL') {
+    const btns = Array.from(document.querySelectorAll('.vigia-btn'));
+    btns.forEach(btn => btn.click());
+    sendResponse({ ok: true, found: btns.length });
+    return false;
   }
-}
 
-// ---------- Historique & stats ----------
-
-async function saveHistory(entry) {
-  const { history = [] } = await chrome.storage.local.get('history');
-  history.push({ ...entry, ts: Date.now() });
-  if (history.length > 50) history.splice(0, history.length - 50);
-  chrome.storage.local.set({ history });
-}
-
-async function updateStats(level) {
-  const key = { green: 'statsGreen', orange: 'statsOrange', red: 'statsRed' }[level];
-  if (!key) return;
-  const data = await chrome.storage.local.get(key);
-  chrome.storage.local.set({ [key]: (data[key] || 0) + 1 });
-}
+  // Popup demande de scanner un type d'élément spécifique
+  if (msg.type === 'SCAN_MODULE') {
+    const ctas = document.querySelectorAll(`.vigia-cta[data-vigia-context="${msg.context}"]`);
+    let found = 0;
+    ctas.forEach(cta => {
+      const btn = cta.querySelector('.vigia-btn');
+      if (btn) { btn.click(); found++; }
+    });
+    sendResponse({ ok: true, found });
+    return false;
+  }
+});
 
 // ---------- Observer (infinite scroll) ----------
 

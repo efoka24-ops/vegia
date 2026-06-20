@@ -34,16 +34,6 @@
 }
 .vigia-btn:hover { background: #d5e8df; }
 
-.vigia-btn-icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background-image: url("icons/vigia.svg");
-  background-size: contain;
-  background-repeat: no-repeat;
-  flex-shrink: 0;
-}
-
 /* ── État chargement ─────────────────────────────────────────── */
 @keyframes vigia-spin { to { transform: rotate(360deg); } }
 @keyframes vigia-scan { 0%{left:-40%} 100%{left:100%} }

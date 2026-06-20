@@ -5,6 +5,7 @@ const PLATFORMS = {
 
 const MOD_RESULTS = { media: null, info: null, link: null, account: null };
 
+// Résultats mock (fallback si pas d'éléments détectés sur la page)
 const MOCK_RESULTS = {
   media:   { level: 'red',   badge: '⚠ 82%',         label: 'Vidéo probablement manipulée par IA.' },
   info:    { level: 'green', badge: '✓ RAS',          label: 'Aucun indicateur de désinformation.' },
@@ -13,6 +14,12 @@ const MOCK_RESULTS = {
 };
 
 const DELAYS = { media: 1800, info: 1400, link: 1000, account: 1600 };
+
+// popup mod → content script context
+const MOD_TO_CTX = { media: 'images', info: 'posts', link: 'links', account: 'profiles' };
+
+// Niveau de sévérité pour garder le pire résultat si plusieurs éléments scannés
+const SEVERITY = { red: 3, orange: 2, green: 1, error: 0 };
 
 // ── Init ──────────────────────────────────────────────────────
 
@@ -23,13 +30,10 @@ async function init() {
   document.getElementById('toggleEnabled').checked = enabled;
   updateDisabledBanner(enabled);
 
-  // Render all modules in idle state
   ['media', 'info', 'link', 'account'].forEach(m => setModuleState(m, 'idle'));
 
-  // Wire static buttons (no inline onclick — required by extension CSP)
   document.getElementById('toggleEnabled').addEventListener('change', onToggle);
   document.getElementById('btnScanAll').addEventListener('click', scanAll);
-  document.getElementById('btnReset').addEventListener('click', resetDemo);
 }
 
 // ── Toggle ────────────────────────────────────────────────────
@@ -74,14 +78,53 @@ function setModuleState(mod, state, result) {
   }
 }
 
-// ── Scan ──────────────────────────────────────────────────────
+// ── Scan d'un module (via content script → fallback mock) ─────
 
 function scanModule(mod) {
   if (MOD_RESULTS[mod] !== null) return;
   setModuleState(mod, 'scanning');
   updateHeader();
 
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    if (!tab?.id) { runMockForMod(mod); return; }
+
+    chrome.tabs.sendMessage(tab.id, { type: 'SCAN_MODULE', context: MOD_TO_CTX[mod] }, (resp) => {
+      if (chrome.runtime.lastError || !resp?.found) {
+        // Pas de content script ou aucun élément trouvé → simulation
+        runMockForMod(mod);
+      }
+      // Si found > 0, on attend les messages SCAN_RESULT du content script
+    });
+  });
+}
+
+// ── Tout vérifier (via content script → fallback mock) ────────
+
+function scanAll() {
+  const pending = ['media', 'info', 'link', 'account'].filter(m => MOD_RESULTS[m] === null);
+  if (!pending.length) return;
+
+  pending.forEach(m => setModuleState(m, 'scanning'));
+  updateHeader();
+
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    if (!tab?.id) { pending.forEach(runMockForMod); return; }
+
+    chrome.tabs.sendMessage(tab.id, { type: 'SCAN_ALL' }, (resp) => {
+      if (chrome.runtime.lastError || !resp?.found) {
+        // Pas de content script ou page sans éléments → simulation
+        pending.forEach(runMockForMod);
+      }
+      // Si found > 0, les SCAN_RESULT arrivent via onMessage
+    });
+  });
+}
+
+// ── Mock simulation (fallback) ────────────────────────────────
+
+function runMockForMod(mod) {
   setTimeout(() => {
+    if (MOD_RESULTS[mod] !== null) return; // résultat réel déjà arrivé
     const r = MOCK_RESULTS[mod];
     MOD_RESULTS[mod] = r;
     setModuleState(mod, 'done', r);
@@ -89,11 +132,23 @@ function scanModule(mod) {
   }, DELAYS[mod]);
 }
 
-function scanAll() {
-  ['media', 'info', 'link', 'account'].forEach(m => {
-    if (MOD_RESULTS[m] === null) scanModule(m);
-  });
-}
+// ── Réception des résultats du content script ─────────────────
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type !== 'SCAN_RESULT') return;
+  const { mod, result } = msg;
+  if (!mod || !result) return;
+
+  const current = MOD_RESULTS[mod];
+  // Garder le résultat le plus sévère si plusieurs éléments scannés
+  const newSev = SEVERITY[result.level] || 0;
+  const curSev = current ? (SEVERITY[current.level] || 0) : -1;
+  if (newSev > curSev) {
+    MOD_RESULTS[mod] = result;
+    setModuleState(mod, 'done', result);
+    updateHeader();
+  }
+});
 
 // ── Header état ───────────────────────────────────────────────
 
@@ -112,24 +167,13 @@ function updateHeader() {
 
   elIdle.style.display     = (!scanning && done.length === 0) ? 'block' : 'none';
   elScanning.style.display = scanning ? 'flex' : 'none';
-  elDone.style.display     = (!scanning && done.length > 0) ? 'flex' : 'none';
+  elDone.style.display     = (!scanning && done.length > 0)  ? 'flex'  : 'none';
 
   if (!scanning && done.length > 0) {
     document.getElementById('alertCount').textContent = alerts;
     document.getElementById('alertWord').textContent  =
-      alerts === 0 ? 'alerte détectée' :
-      alerts === 1 ? 'alerte détectée' : 'alertes détectées';
+      alerts <= 1 ? 'alerte détectée' : 'alertes détectées';
   }
-}
-
-// ── Reset ─────────────────────────────────────────────────────
-
-function resetDemo() {
-  ['media', 'info', 'link', 'account'].forEach(m => {
-    MOD_RESULTS[m] = null;
-    setModuleState(m, 'idle');
-  });
-  updateHeader();
 }
 
 init();
