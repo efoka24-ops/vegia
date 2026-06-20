@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "VigIA",
+  "short_name": "VigIA",
+  "version": "0.1.0",
+  "description": "Détectez deepfakes, désinformation et arnaques sur les réseaux sociaux.",
+  "icons": {
+    "16": "icons/vigia-16.png",
+    "48": "icons/vigia-48.png",
+    "128": "icons/vigia-128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.facebook.com/*",
+    "https://twitter.com/*",
+    "https://x.com/*",
+    "https://web.whatsapp.com/*",
+    "https://api.vigia.cm/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.facebook.com/*",
+        "https://twitter.com/*",
+        "https://x.com/*",
+        "https://web.whatsapp.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/vigia-16.png",
+      "48": "icons/vigia-48.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

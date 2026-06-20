@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VigIA</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 280px;
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+    header img { width: 32px; height: 32px; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header span { font-size: 11px; color: #64748b; }
+
+    .status {
+      padding: 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .status__dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .status__dot--on  { background: #22c55e; }
+    .status__dot--off { background: #ef4444; }
+
+    .stats {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .stat {
+      background: #1e293b;
+      border-radius: 6px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .stat__value { font-size: 20px; font-weight: 700; }
+    .stat__label { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .stat--green  .stat__value { color: #22c55e; }
+    .stat--orange .stat__value { color: #f59e0b; }
+    .stat--red    .stat__value { color: #ef4444; }
+
+    .toggle {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    .switch { position: relative; width: 40px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: #374151;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 16px; height: 16px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .slider { background: #22c55e; }
+    input:checked + .slider::before { transform: translateX(18px); }
+
+    footer {
+      padding: 10px 16px;
+      font-size: 10px;
+      color: #475569;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icons/vigia-48.png" alt="VigIA" />
+    <div>
+      <h1>VigIA</h1>
+      <span>Protection contre la désinformation</span>
+    </div>
+  </header>
+
+  <div class="status">
+    <span class="status__dot status__dot--on" id="statusDot"></span>
+    <span id="statusText">Actif sur cette page</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat stat--green">
+      <div class="stat__value" id="countGreen">—</div>
+      <div class="stat__label">Fiables</div>
+    </div>
+    <div class="stat stat--orange">
+      <div class="stat__value" id="countOrange">—</div>
+      <div class="stat__label">Douteux</div>
+    </div>
+    <div class="stat stat--red">
+      <div class="stat__value" id="countRed">—</div>
+      <div class="stat__label">Suspects</div>
+    </div>
+  </div>
+
+  <div class="toggle">
+    <span>Extension activée</span>
+    <label class="switch">
+      <input type="checkbox" id="toggleEnabled" checked />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <footer>VigIA v0.1.0 — Données restent sur votre appareil</footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Environnement
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Modèles IA (trop lourds pour git)
+backend/models/*.pth
+backend/models/*.pkl
+
+# Node
+node_modules/
+
+# Données sensibles
+data/*.csv
+data/registre/
+
+# IDE
+.vscode/
+.idea/
+
+# Docker volumes locaux
+infra/volumes/
