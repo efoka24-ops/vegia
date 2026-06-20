@@ -1,5 +1,5 @@
 const TYPE_LABELS = { image: '🖼 Image', text: '📰 Texte', url: '🔗 Lien', account: '👤 Compte' };
-const PLATFORMS   = { 'facebook.com': 'Facebook', 'twitter.com': 'Twitter', 'x.com': 'X', 'whatsapp.com': 'WhatsApp' };
+const PLATFORMS   = { 'facebook.com': 'Facebook', 'twitter.com': 'Twitter', 'x.com': 'X', 'whatsapp.com': 'WhatsApp', 'linkedin.com': 'LinkedIn' };
 
 async function init() {
   const data = await chrome.storage.local.get([

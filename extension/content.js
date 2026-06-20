@@ -18,6 +18,12 @@ const SITE_CONFIG = {
     posts:    'span.selectable-text.copyable-text',
     links:    'a[href*="http"]',
     profiles: 'img[src*="pps.whatsapp"]'
+  },
+  linkedin: {
+    images:   'img[src*="media.licdn.com"], img[data-delayed-url*="media.licdn.com"]',
+    posts:    '.feed-shared-text .break-words, .update-components-text .break-words, .feed-shared-update-v2__description span',
+    links:    'a.feed-shared-article__title, .update-components-article-link__title a, a[data-tracking-will-navigate][href*="/pulse/"]',
+    profiles: 'img.EntityPhoto-circle-3, img.presence-entity__image, .ivm-view-attr__img--centered'
   }
 };
 
@@ -26,6 +32,7 @@ function detectSite() {
   if (h.includes('facebook')) return 'facebook';
   if (h.includes('twitter') || h.includes('x.com')) return 'twitter';
   if (h.includes('whatsapp')) return 'whatsapp';
+  if (h.includes('linkedin')) return 'linkedin';
   return null;
 }
 

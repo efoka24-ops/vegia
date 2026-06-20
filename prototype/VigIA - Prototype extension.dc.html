@@ -1,223 +1,493 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<!-- React doit être chargé AVANT support.js (dc-runtime en a besoin) -->
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="./support.js"></script>
 <style>
   *{box-sizing:border-box;}
-  body{margin:0;background:#11201A;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  body{margin:0;background:#11201A;min-height:100vh;padding:40px 20px;font-family:'Libre Franklin',sans-serif;}
   @keyframes vigScan{0%{left:-40%;}100%{left:100%;}}
   @keyframes vigPop{0%{opacity:0;transform:translateY(-8px) scale(.98);}100%{opacity:1;transform:translateY(0) scale(1);}}
   @keyframes vigPulse{0%,100%{box-shadow:0 0 0 0 rgba(10,92,66,.45);}50%{box-shadow:0 0 0 8px rgba(10,92,66,0);}}
   @keyframes vigSpin{to{transform:rotate(360deg);}}
 </style>
-</helmet>
+</head>
+<body>
+<x-dc>
 
-<div style="padding:40px;font-family:'Libre Franklin',sans-serif;">
-<x-import component="ChromeWindow" from="./browser-window.jsx" width="1180" height="760" url="facebook.com/fil" hint-size="1180px,760px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:48px;width:100%;">
 
-  <div data-screen-label="Navigateur · VigIA actif" style="position:relative;background:#F0F2F5;min-height:100%;font-family:'Libre Franklin',sans-serif;">
+  <!-- En-tête prototype -->
+  <div style="display:flex;align-items:center;gap:12px;">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span style="color:#fff;font-weight:800;font-size:19px;letter-spacing:-.02em;">Vig<span style="color:#F2B705;">IA</span></span>
+    <span style="color:#4a7c5f;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border:1px solid #1e3d2c;border-radius:99px;">Prototype interactif</span>
+  </div>
 
-    <!-- ===== Barre du site + lanceur extension ===== -->
-    <div style="position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #e3e5e9;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <span style="font-size:26px;font-weight:900;color:#1877F2;letter-spacing:-.03em;">facebook</span>
-        <div style="width:240px;height:34px;border-radius:99px;background:#F0F2F5;display:flex;align-items:center;padding:0 16px;color:#8a8d91;font-size:14px;">Rechercher</div>
+  <!-- ══════════════════════════ FACEBOOK ══════════════════════════ -->
+  <div style="width:1180px;max-width:100%;">
+    <div style="color:#5a8a6a;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;padding-left:4px;">01 · Facebook</div>
+
+    <!-- Cadre Chrome macOS -->
+    <div style="border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.2);display:flex;flex-direction:column;">
+      <div style="background:#202124;height:44px;display:flex;align-items:center;">
+        <div style="display:flex;gap:8px;padding:0 14px;flex-shrink:0;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+        </div>
+        <div style="display:flex;align-items:flex-end;height:100%;padding:0 4px;flex:1;">
+          <div style="height:34px;padding:0 14px;display:flex;align-items:center;gap:8px;background:#35363a;border-radius:8px 8px 0 0;min-width:140px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#5f6368;"></div>
+            <span style="font-size:12px;color:#e8eaed;font-family:system-ui,sans-serif;">New Tab</span>
+          </div>
+        </div>
+      </div>
+      <div style="background:#35363a;height:40px;display:flex;align-items:center;gap:4px;padding:0 8px;">
+        <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:50%;background:#9aa0a6;opacity:.4;"></div></div>
+        <div style="flex:1;height:30px;border-radius:15px;background:#282a2d;display:flex;align-items:center;gap:8px;padding:0 14px;margin:0 6px;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#9aa0a6;opacity:.4;"></div>
+          <span style="color:#e8eaed;font-size:13px;font-family:system-ui,sans-serif;">facebook.com/fil</span>
+        </div>
+        <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:50%;background:#9aa0a6;opacity:.4;"></div></div>
       </div>
 
-      <!-- lanceur extension -->
-      <div style="position:relative;">
-        <button onClick="{{ togglePopup }}" style="display:flex;align-items:center;gap:9px;background:#0A5C42;border:none;border-radius:99px;padding:8px 16px 8px 10px;cursor:pointer;animation:vigPulse 2.4s ease-out infinite;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span style="color:#fff;font-weight:800;font-size:15px;">Vig<span style="color:#F2B705;">IA</span></span>
-          <sc-if value="{{ anyDone }}" hint-placeholder-val="{{ false }}">
-            <span style="background:#C8102E;color:#fff;font-size:12px;font-weight:800;border-radius:99px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 5px;">{{ alerts }}</span>
-          </sc-if>
-        </button>
+      <!-- Contenu Facebook -->
+      <div style="background:#F0F2F5;overflow:auto;height:660px;position:relative;">
 
-        <!-- popup -->
-        <sc-if value="{{ popupOpen }}" hint-placeholder-val="{{ false }}">
-          <div style="position:absolute;top:52px;right:0;width:368px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(17,32,26,.28),0 0 0 1px rgba(17,32,26,.06);overflow:hidden;z-index:50;animation:vigPop .18s ease-out;">
-            <div style="background:#0A5C42;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span style="color:#fff;font-weight:800;font-size:18px;">Vig<span style="color:#F2B705;">IA</span></span>
+        <!-- Barre Facebook -->
+        <div style="position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #e3e5e9;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <span style="font-size:26px;font-weight:900;color:#1877F2;letter-spacing:-.03em;font-family:'Libre Franklin',sans-serif;">facebook</span>
+            <div style="width:220px;height:34px;border-radius:99px;background:#F0F2F5;display:flex;align-items:center;padding:0 16px;color:#8a8d91;font-size:14px;">Rechercher</div>
+          </div>
+          <!-- Bouton VigIA Facebook -->
+          <div style="position:relative;">
+            <button onClick="{{ toggleFbPopup }}" style="display:flex;align-items:center;gap:9px;background:#0A5C42;border:none;border-radius:99px;padding:8px 16px 8px 10px;cursor:pointer;animation:vigPulse 2.4s ease-out infinite;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span style="color:#fff;font-weight:800;font-size:15px;font-family:'Libre Franklin',sans-serif;">Vig<span style="color:#F2B705;">IA</span></span>
+              <sc-if value="{{ fbAnyDone }}" hint-placeholder-val="{{ false }}">
+                <span style="background:#C8102E;color:#fff;font-size:12px;font-weight:800;border-radius:99px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 5px;">{{ fbAlerts }}</span>
+              </sc-if>
+            </button>
+            <!-- Popup Facebook -->
+            <sc-if value="{{ fbPopup }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:52px;right:0;width:360px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(17,32,26,.28),0 0 0 1px rgba(17,32,26,.07);overflow:hidden;z-index:50;animation:vigPop .18s ease-out;">
+                <div style="background:#0A5C42;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span style="color:#fff;font-weight:800;font-size:17px;font-family:'Libre Franklin',sans-serif;">Vig<span style="color:#F2B705;">IA</span></span>
+                  </div>
+                  <button onClick="{{ toggleFbPopup }}" style="background:rgba(255,255,255,.18);border:none;color:#fff;width:26px;height:26px;border-radius:99px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+                <div style="padding:16px 18px;">
+                  <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#83837b;font-weight:700;">Protection active sur cette page</div>
+                  <sc-if value="{{ fbAnyDone }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;">
+                      <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:36px;font-weight:800;color:#C8102E;line-height:1;">{{ fbAlerts }}</span>
+                      <span style="font-size:15px;font-weight:700;color:#C8102E;">{{ fbAlertsWord }} détectée(s)</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ fbNoneDone }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:16px;font-weight:700;color:#11201A;margin-top:6px;">Prêt à analyser cette page.</div>
+                  </sc-if>
+                  <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Média</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Manipulation IA</span>
+                      <sc-if value="{{ fbMediaDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ 82%</span></sc-if>
+                      <sc-if value="{{ fbMediaNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Info</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Fact-checking</span>
+                      <span style="font-size:11px;color:#0A5C42;font-weight:700;">✓ RAS</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Lien</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Phishing / arnaque</span>
+                      <sc-if value="{{ fbLinkDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ arnaque</span></sc-if>
+                      <sc-if value="{{ fbLinkNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Compte</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Compte officiel</span>
+                      <sc-if value="{{ fbAccountDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ non vérifié</span></sc-if>
+                      <sc-if value="{{ fbAccountNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                    </div>
+                  </div>
+                  <button onClick="{{ scanFbAll }}" style="width:100%;margin-top:14px;background:#0A5C42;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">Tout vérifier sur cette page</button>
+                  <button onClick="{{ resetFb }}" style="width:100%;margin-top:6px;background:transparent;color:#65676B;border:none;padding:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Libre Franklin';">Réinitialiser la démo</button>
+                </div>
               </div>
-              <button onClick="{{ togglePopup }}" style="background:rgba(255,255,255,.16);border:none;color:#fff;width:26px;height:26px;border-radius:99px;cursor:pointer;font-size:15px;line-height:1;">✕</button>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Fil Facebook -->
+        <div style="max-width:620px;margin:0 auto;padding:20px 0 60px;display:flex;flex-direction:column;gap:16px;">
+
+          <!-- Post A : Deepfake vidéo -->
+          <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px 10px;">
+              <div style="width:42px;height:42px;border-radius:99px;background:#dfe3ea;display:flex;align-items:center;justify-content:center;font-weight:800;color:#8a8d91;font-size:14px;flex-shrink:0;">A2</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:700;color:#11201A;">Actu Cameroun 237</div><div style="font-size:12px;color:#8a8d91;">il y a 2 h · 🌍 Public</div></div>
+              <span style="color:#8a8d91;font-size:22px;cursor:default;">⋯</span>
             </div>
-            <div style="padding:18px 20px;">
-              <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#83837b;font-weight:700;">Protection active sur cette page</div>
-              <sc-if value="{{ anyDone }}" hint-placeholder-val="{{ false }}">
-                <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;"><span style="font-family:'Bricolage Grotesque',sans-serif;font-size:38px;font-weight:800;color:#C8102E;line-height:1;">{{ alerts }}</span><span style="font-size:16px;font-weight:700;color:#C8102E;">{{ alertsWord }} détectée(s)</span></div>
-              </sc-if>
-              <sc-if value="{{ noneDone }}" hint-placeholder-val="{{ true }}">
-                <div style="font-size:17px;font-weight:700;color:#11201A;margin-top:6px;">Prêt à analyser cette page.</div>
-              </sc-if>
-
-              <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
-                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
-                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Média</span>
-                  <span style="font-size:12px;color:#65676B;flex:1;">Manipulation IA</span>
-                  <sc-if value="{{ mediaDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ 82%</span></sc-if>
-                  <sc-if value="{{ mediaNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
-                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Info</span>
-                  <span style="font-size:12px;color:#65676B;flex:1;">Fact-checking</span>
-                  <span style="font-size:11px;color:#0A5C42;font-weight:700;">✓ RAS</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
-                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Lien</span>
-                  <span style="font-size:12px;color:#65676B;flex:1;">Phishing / arnaque</span>
-                  <sc-if value="{{ linkDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ arnaque</span></sc-if>
-                  <sc-if value="{{ linkNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:#F7F6F2;border-radius:10px;">
-                  <span style="font-size:14px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Compte</span>
-                  <span style="font-size:12px;color:#65676B;flex:1;">Compte officiel</span>
-                  <sc-if value="{{ accountDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ non vérifié</span></sc-if>
-                  <sc-if value="{{ accountNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
-                </div>
+            <div style="padding:0 16px 10px;font-size:14px;color:#1c1e21;line-height:1.45;">🔴 URGENT — Le responsable annonce une mesure choc qui change tout. À partager massivement&nbsp;!</div>
+            <div style="position:relative;height:280px;background:linear-gradient(135deg,#2a2f33,#11201A);display:flex;align-items:center;justify-content:center;">
+              <div style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;padding:3px 8px;border-radius:5px;">VIDÉO</div>
+              <div style="width:64px;height:64px;border-radius:99px;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;">
+                <div style="width:0;height:0;border-left:20px solid #11201A;border-top:12px solid transparent;border-bottom:12px solid transparent;margin-left:5px;"></div>
               </div>
-
-              <button onClick="{{ scanAll }}" style="width:100%;margin-top:16px;background:#0A5C42;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">Tout vérifier sur cette page</button>
-              <button onClick="{{ reset }}" style="width:100%;margin-top:8px;background:transparent;color:#65676B;border:none;padding:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Libre Franklin';">Réinitialiser la démo</button>
+            </div>
+            <div style="padding:12px 16px;border-top:1px solid #f0f0f0;">
+              <sc-if value="{{ fbMediaIdle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ scanFbMedia }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Vérifier cette vidéo avec VigIA
+                </button>
+              </sc-if>
+              <sc-if value="{{ fbMediaScanning }}" hint-placeholder-val="{{ false }}">
+                <div><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:13px;font-weight:700;"><span style="width:15px;height:15px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span>Analyse Vérif-Média en cours…</div><div style="position:relative;height:5px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+              </sc-if>
+              <sc-if value="{{ fbMediaDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FCEBEC;border-radius:10px;border-left:4px solid #C8102E;padding:12px 14px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⚠️</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-MÉDIA</span><span style="margin-left:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:#C8102E;">82%</span></div>
+                  <div style="font-size:14px;color:#11201A;font-weight:700;margin-top:6px;">Vidéo probablement manipulée par IA.</div>
+                  <div style="font-size:12px;color:#65676B;margin-top:3px;">Aucune source officielle ne confirme cette annonce.</div>
+                </div>
+              </sc-if>
             </div>
           </div>
-        </sc-if>
-      </div>
-    </div>
 
-    <!-- ===== FIL ===== -->
-    <div style="max-width:620px;margin:0 auto;padding:24px 0 80px;display:flex;flex-direction:column;gap:20px;">
-
-      <!-- POST A · VIDÉO / DEEPFAKE -->
-      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 12px;">
-          <div style="width:42px;height:42px;border-radius:99px;background:#dfe3ea;display:flex;align-items:center;justify-content:center;font-weight:800;color:#8a8d91;">A2</div>
-          <div style="flex:1;"><div style="font-size:15px;font-weight:700;color:#11201A;">Actu Cameroun 237</div><div style="font-size:12px;color:#8a8d91;">il y a 2 h · 🌍 Public</div></div>
-          <span style="color:#8a8d91;font-size:22px;">⋯</span>
-        </div>
-        <div style="padding:0 18px 12px;font-size:15px;color:#1c1e21;line-height:1.45;">🔴 URGENT — Le responsable annonce une mesure choc qui change tout. À partager massivement&nbsp;!</div>
-        <div style="position:relative;height:300px;background:linear-gradient(135deg,#2a2f33,#11201A);display:flex;align-items:center;justify-content:center;">
-          <div style="position:absolute;top:14px;left:14px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:6px;">VIDÉO</div>
-          <div style="width:70px;height:70px;border-radius:99px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;"><div style="width:0;height:0;border-left:22px solid #11201A;border-top:14px solid transparent;border-bottom:14px solid transparent;margin-left:6px;"></div></div>
-        </div>
-        <!-- bande VigIA -->
-        <div style="padding:14px 18px;border-top:1px solid #f0f0f0;">
-          <sc-if value="{{ mediaIdle }}" hint-placeholder-val="{{ true }}">
-            <button onClick="{{ scanMedia }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Vérifier cette vidéo avec VigIA
-            </button>
-          </sc-if>
-          <sc-if value="{{ mediaScanning }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:4px 2px;"><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:14px;font-weight:700;"><span style="width:16px;height:16px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span>Analyse Vérif-Média en cours…</div><div style="position:relative;height:6px;border-radius:99px;background:#EDE9E2;margin-top:12px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
-          </sc-if>
-          <sc-if value="{{ mediaDone }}" hint-placeholder-val="{{ false }}">
-            <div style="background:#FCEBEC;border-radius:10px;border-left:5px solid #C8102E;padding:14px 16px;">
-              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚠️</span><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-MÉDIA</span><span style="margin-left:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:#C8102E;">82%</span></div>
-              <div style="font-size:15px;color:#11201A;font-weight:700;margin-top:8px;">Vidéo probablement manipulée par IA.</div>
-              <div style="font-size:13px;color:#65676B;margin-top:4px;">Aucune source officielle ne confirme cette annonce.</div>
+          <!-- Post B : Phishing Messenger -->
+          <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px 10px;">
+              <div style="width:42px;height:42px;border-radius:99px;background:#ffe7a8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#b58a00;font-size:14px;flex-shrink:0;">M</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:700;color:#11201A;">MTN Mobile Money <span style="color:#8a8d91;font-weight:500;">· Messenger</span></div><div style="font-size:12px;color:#8a8d91;">Message reçu · à l'instant</div></div>
+              <span style="color:#8a8d91;font-size:22px;cursor:default;">⋯</span>
             </div>
-          </sc-if>
-        </div>
-      </div>
-
-      <!-- POST B · MESSAGE / PHISHING -->
-      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 12px;">
-          <div style="width:42px;height:42px;border-radius:99px;background:#ffe7a8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#b58a00;">M</div>
-          <div style="flex:1;"><div style="font-size:15px;font-weight:700;color:#11201A;">MTN Mobile Money <span style="color:#8a8d91;font-weight:500;">· Messenger</span></div><div style="font-size:12px;color:#8a8d91;">Message reçu · à l'instant</div></div>
-          <span style="color:#8a8d91;font-size:22px;">⋯</span>
-        </div>
-        <div style="padding:0 18px 14px;">
-          <div style="background:#F0F2F5;border-radius:4px 16px 16px 16px;padding:14px 16px;font-size:15px;color:#1c1e21;line-height:1.5;max-width:90%;">Cher client, confirmez votre compte Mobile Money sous 24 h pour éviter la suspension :<br><span style="color:#1877F2;text-decoration:underline;word-break:break-all;">mtn-momo-verify.xyz/confirmer-compte</span></div>
-        </div>
-        <div style="padding:14px 18px;border-top:1px solid #f0f0f0;">
-          <sc-if value="{{ linkIdle }}" hint-placeholder-val="{{ true }}">
-            <button onClick="{{ scanLink }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Vérifier ce lien avec VigIA
-            </button>
-          </sc-if>
-          <sc-if value="{{ linkScanning }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:4px 2px;"><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:14px;font-weight:700;"><span style="width:16px;height:16px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span>Analyse Vérif-Lien en cours…</div><div style="position:relative;height:6px;border-radius:99px;background:#EDE9E2;margin-top:12px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
-          </sc-if>
-          <sc-if value="{{ linkDone }}" hint-placeholder-val="{{ false }}">
-            <div style="background:#FCEBEC;border-radius:10px;border-left:5px solid #C8102E;padding:14px 16px;">
-              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚠️</span><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-LIEN</span></div>
-              <div style="font-size:15px;color:#11201A;font-weight:700;margin-top:8px;">Arnaque connue — phishing mobile money.</div>
-              <div style="font-size:13px;color:#65676B;margin-top:4px;">Présent dans la liste noire collaborative. Ne saisissez jamais votre code.</div>
+            <div style="padding:0 16px 12px;">
+              <div style="background:#F0F2F5;border-radius:4px 16px 16px 16px;padding:12px 14px;font-size:14px;color:#1c1e21;line-height:1.5;max-width:88%;">Cher client, confirmez votre compte Mobile Money sous 24 h pour éviter la suspension :<br><span style="color:#1877F2;text-decoration:underline;word-break:break-all;">mtn-momo-verify.xyz/confirmer-compte</span></div>
             </div>
-          </sc-if>
-        </div>
-      </div>
-
-      <!-- POST C · PROFIL / USURPATION -->
-      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
-        <div style="padding:14px 18px 6px;font-size:13px;color:#8a8d91;font-weight:700;">Suggestion · Personne que vous pourriez connaître</div>
-        <div style="display:flex;align-items:center;gap:14px;padding:8px 18px 16px;">
-          <div style="width:56px;height:56px;border-radius:99px;background:#cdd6df;display:flex;align-items:center;justify-content:center;font-weight:800;color:#7c8a96;">MP</div>
-          <div style="flex:1;"><div style="font-size:16px;font-weight:700;color:#11201A;">Le Ministre des Postes et Télécommunications</div><div style="font-size:13px;color:#8a8d91;">12 k abonnés · 3 amis en commun</div></div>
-          <button style="background:#1877F2;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';">Suivre</button>
-        </div>
-        <div style="padding:14px 18px;border-top:1px solid #f0f0f0;">
-          <sc-if value="{{ accountIdle }}" hint-placeholder-val="{{ true }}">
-            <button onClick="{{ scanAccount }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Vérifier ce compte avec VigIA
-            </button>
-          </sc-if>
-          <sc-if value="{{ accountScanning }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:4px 2px;"><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:14px;font-weight:700;"><span style="width:16px;height:16px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;"></span>Analyse Vérif-Compte en cours…</div><div style="position:relative;height:6px;border-radius:99px;background:#EDE9E2;margin-top:12px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
-          </sc-if>
-          <sc-if value="{{ accountDone }}" hint-placeholder-val="{{ false }}">
-            <div style="background:#FCEBEC;border-radius:10px;border-left:5px solid #C8102E;padding:14px 16px;">
-              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚠️</span><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-COMPTE</span></div>
-              <div style="font-size:15px;color:#11201A;font-weight:700;margin-top:8px;">Ne correspond à aucun compte officiel vérifié.</div>
-              <div style="font-size:13px;color:#65676B;margin-top:4px;">Le registre national ne référence aucun compte officiel pour ce profil.</div>
+            <div style="padding:12px 16px;border-top:1px solid #f0f0f0;">
+              <sc-if value="{{ fbLinkIdle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ scanFbLink }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Vérifier ce lien avec VigIA
+                </button>
+              </sc-if>
+              <sc-if value="{{ fbLinkScanning }}" hint-placeholder-val="{{ false }}">
+                <div><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:13px;font-weight:700;"><span style="width:15px;height:15px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span>Analyse Vérif-Lien en cours…</div><div style="position:relative;height:5px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+              </sc-if>
+              <sc-if value="{{ fbLinkDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FCEBEC;border-radius:10px;border-left:4px solid #C8102E;padding:12px 14px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⚠️</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-LIEN</span></div>
+                  <div style="font-size:14px;color:#11201A;font-weight:700;margin-top:6px;">Arnaque connue — phishing Mobile Money.</div>
+                  <div style="font-size:12px;color:#65676B;margin-top:3px;">Présent dans la liste noire collaborative. Ne saisissez jamais votre code.</div>
+                </div>
+              </sc-if>
             </div>
-          </sc-if>
+          </div>
+
+          <!-- Post C : Faux compte officiel -->
+          <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+            <div style="padding:12px 16px 4px;font-size:12px;color:#8a8d91;font-weight:700;">Suggestion · Personne que vous pourriez connaître</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 16px 14px;">
+              <div style="width:52px;height:52px;border-radius:99px;background:#cdd6df;display:flex;align-items:center;justify-content:center;font-weight:800;color:#7c8a96;font-size:14px;flex-shrink:0;">MP</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:#11201A;">Le Ministre des Postes et Télécommunications</div>
+                <div style="font-size:12px;color:#8a8d91;">12 k abonnés · 3 amis en commun</div>
+              </div>
+              <button style="background:#1877F2;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';">Suivre</button>
+            </div>
+            <div style="padding:12px 16px;border-top:1px solid #f0f0f0;">
+              <sc-if value="{{ fbAccountIdle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ scanFbAccount }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:10px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Vérifier ce compte avec VigIA
+                </button>
+              </sc-if>
+              <sc-if value="{{ fbAccountScanning }}" hint-placeholder-val="{{ false }}">
+                <div><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:13px;font-weight:700;"><span style="width:15px;height:15px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span>Analyse Vérif-Compte en cours…</div><div style="position:relative;height:5px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+              </sc-if>
+              <sc-if value="{{ fbAccountDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FCEBEC;border-radius:10px;border-left:4px solid #C8102E;padding:12px 14px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">⚠️</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-COMPTE</span></div>
+                  <div style="font-size:14px;color:#11201A;font-weight:700;margin-top:6px;">Ne correspond à aucun compte officiel vérifié.</div>
+                  <div style="font-size:12px;color:#65676B;margin-top:3px;">Le registre national ne référence aucun compte officiel pour ce profil.</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- Compte officiel confirmé (contre-exemple) -->
+          <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;">
+              <div style="width:46px;height:46px;border-radius:99px;background:#0A5C42;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">MP</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:#11201A;">MINPOSTEL — Compte officiel</div>
+                <div style="font-size:12px;color:#8a8d91;">Vérifié par VigIA</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;background:#EEF3F0;border-radius:99px;padding:6px 12px;white-space:nowrap;"><span style="font-size:14px;">✅</span><span style="font-size:12px;font-weight:800;color:#0A5C42;">Compte officiel confirmé</span></div>
+            </div>
+          </div>
+
         </div>
       </div>
-
-      <!-- contre-exemple : compte officiel confirmé -->
-      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;">
-          <div style="width:48px;height:48px;border-radius:99px;background:#0A5C42;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;">MP</div>
-          <div style="flex:1;"><div style="font-size:15px;font-weight:700;color:#11201A;display:flex;align-items:center;gap:6px;">MINPOSTEL — Compte officiel</div><div style="font-size:13px;color:#8a8d91;">Vérifié par VigIA</div></div>
-          <div style="display:flex;align-items:center;gap:8px;background:#EEF3F0;border-radius:99px;padding:7px 14px;"><span style="font-size:16px;">✅</span><span style="font-size:13px;font-weight:800;color:#0A5C42;">Compte officiel confirmé</span></div>
-        </div>
-      </div>
-
     </div>
   </div>
 
-</x-import>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260,&quot;height&quot;:840}}">
-class Component extends DCLogic {
-  state = { popupOpen: false, media: 'idle', link: 'idle', account: 'idle' };
+  <!-- ══════════════════════════ LINKEDIN ══════════════════════════ -->
+  <div style="width:1180px;max-width:100%;">
+    <div style="color:#5a8a6a;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;padding-left:4px;">02 · LinkedIn</div>
 
-  _scan(key, delay) {
+    <!-- Cadre Chrome macOS -->
+    <div style="border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.2);display:flex;flex-direction:column;">
+      <div style="background:#202124;height:44px;display:flex;align-items:center;">
+        <div style="display:flex;gap:8px;padding:0 14px;flex-shrink:0;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+        </div>
+        <div style="display:flex;align-items:flex-end;height:100%;padding:0 4px;flex:1;">
+          <div style="height:34px;padding:0 14px;display:flex;align-items:center;gap:8px;background:#35363a;border-radius:8px 8px 0 0;min-width:140px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#5f6368;"></div>
+            <span style="font-size:12px;color:#e8eaed;font-family:system-ui,sans-serif;">New Tab</span>
+          </div>
+        </div>
+      </div>
+      <div style="background:#35363a;height:40px;display:flex;align-items:center;gap:4px;padding:0 8px;">
+        <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:50%;background:#9aa0a6;opacity:.4;"></div></div>
+        <div style="flex:1;height:30px;border-radius:15px;background:#282a2d;display:flex;align-items:center;gap:8px;padding:0 14px;margin:0 6px;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#9aa0a6;opacity:.4;"></div>
+          <span style="color:#e8eaed;font-size:13px;font-family:system-ui,sans-serif;">linkedin.com/feed</span>
+        </div>
+        <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:50%;background:#9aa0a6;opacity:.4;"></div></div>
+      </div>
+
+      <!-- Contenu LinkedIn -->
+      <div style="background:#f3f2ef;overflow:auto;height:660px;position:relative;">
+
+        <!-- Barre LinkedIn -->
+        <div style="position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #e0e0e0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <!-- Logo LinkedIn -->
+            <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+              <rect width="34" height="34" rx="7" fill="#0A66C2"/>
+              <path d="M8 13h4v13H8zM10 11.5a2 2 0 110-4 2 2 0 010 4zM15 13h4v2s1.2-2 4.2-2c3.8 0 4.8 2.5 4.8 6V26h-4V19.5c0-1.5-.1-3.5-2.2-3.5s-2.8 1.8-2.8 3.4V26h-4V13z" fill="#fff"/>
+            </svg>
+            <div style="width:220px;height:34px;border-radius:4px;background:#EEF3F8;display:flex;align-items:center;padding:0 14px;color:#6b7280;font-size:14px;">Rechercher</div>
+          </div>
+          <!-- Bouton VigIA LinkedIn -->
+          <div style="position:relative;">
+            <button onClick="{{ toggleLiPopup }}" style="display:flex;align-items:center;gap:9px;background:#0A5C42;border:none;border-radius:99px;padding:8px 16px 8px 10px;cursor:pointer;animation:vigPulse 2.4s ease-out infinite;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span style="color:#fff;font-weight:800;font-size:15px;font-family:'Libre Franklin',sans-serif;">Vig<span style="color:#F2B705;">IA</span></span>
+              <sc-if value="{{ liAnyDone }}" hint-placeholder-val="{{ false }}">
+                <span style="background:#C8102E;color:#fff;font-size:12px;font-weight:800;border-radius:99px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 5px;">{{ liAlerts }}</span>
+              </sc-if>
+            </button>
+            <!-- Popup LinkedIn -->
+            <sc-if value="{{ liPopup }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:52px;right:0;width:360px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(17,32,26,.28),0 0 0 1px rgba(17,32,26,.07);overflow:hidden;z-index:50;animation:vigPop .18s ease-out;">
+                <div style="background:#0A5C42;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span style="color:#fff;font-weight:800;font-size:17px;font-family:'Libre Franklin',sans-serif;">Vig<span style="color:#F2B705;">IA</span></span>
+                  </div>
+                  <button onClick="{{ toggleLiPopup }}" style="background:rgba(255,255,255,.18);border:none;color:#fff;width:26px;height:26px;border-radius:99px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+                <div style="padding:16px 18px;">
+                  <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#83837b;font-weight:700;">Protection active sur cette page</div>
+                  <sc-if value="{{ liAnyDone }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;">
+                      <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:36px;font-weight:800;color:#C8102E;line-height:1;">{{ liAlerts }}</span>
+                      <span style="font-size:15px;font-weight:700;color:#C8102E;">{{ liAlertsWord }} détectée(s)</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ liNoneDone }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:16px;font-weight:700;color:#11201A;margin-top:6px;">Prêt à analyser cette page.</div>
+                  </sc-if>
+                  <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Média</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Manipulation IA</span>
+                      <sc-if value="{{ liMediaDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ 78%</span></sc-if>
+                      <sc-if value="{{ liMediaNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Info</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Fact-checking</span>
+                      <span style="font-size:11px;color:#0A5C42;font-weight:700;">✓ RAS</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Lien</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Arnaque / scam</span>
+                      <sc-if value="{{ liLinkDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ scam</span></sc-if>
+                      <sc-if value="{{ liLinkNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F7F6F2;border-radius:10px;">
+                      <span style="font-size:13px;font-weight:800;color:#0A5C42;width:108px;">Vérif-Compte</span>
+                      <span style="font-size:12px;color:#65676B;flex:1;">Compte officiel</span>
+                      <sc-if value="{{ liAccountDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:800;color:#C8102E;">⚠ usurpation</span></sc-if>
+                      <sc-if value="{{ liAccountNotDone }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#9aa0a6;">en veille</span></sc-if>
+                    </div>
+                  </div>
+                  <button onClick="{{ scanLiAll }}" style="width:100%;margin-top:14px;background:#0A5C42;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">Tout vérifier sur cette page</button>
+                  <button onClick="{{ resetLi }}" style="width:100%;margin-top:6px;background:transparent;color:#65676B;border:none;padding:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Libre Franklin';">Réinitialiser la démo</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Fil LinkedIn -->
+        <div style="max-width:660px;margin:0 auto;padding:20px 0 60px;display:flex;flex-direction:column;gap:12px;">
+
+          <!-- Post A : Deepfake vidéo ministre -->
+          <div style="background:#fff;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);overflow:hidden;">
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px 10px;">
+              <div style="width:48px;height:48px;border-radius:99px;background:#d4e4f0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a5a8a;font-size:13px;flex-shrink:0;">MF</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:#000;line-height:1.3;">Ministère des Finances</div>
+                <div style="font-size:12px;color:#666;">Compte gouvernemental · 22 k abonnés</div>
+                <div style="font-size:12px;color:#666;">il y a 3 h · 🌍</div>
+              </div>
+              <span style="color:#666;font-size:20px;cursor:default;">⋯</span>
+            </div>
+            <div style="padding:0 16px 10px;font-size:14px;color:#000;line-height:1.5;">📢 OFFICIEL — Nouvelles mesures fiscales 2025 : exonérations massives pour les PME camerounaises. Regardez l'annonce complète du Ministre.</div>
+            <div style="position:relative;height:260px;background:linear-gradient(135deg,#1a3a5c,#0f2a45);display:flex;align-items:center;justify-content:center;">
+              <div style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.5);color:#fff;font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px;border-radius:4px;">VIDÉO · 2 min 34</div>
+              <div style="width:60px;height:60px;border-radius:99px;background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;">
+                <div style="width:0;height:0;border-left:18px solid #1a3a5c;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:4px;"></div>
+              </div>
+            </div>
+            <div style="padding:10px 16px;border-top:1px solid #e0e0e0;">
+              <sc-if value="{{ liMediaIdle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ scanLiMedia }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:8px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Vérifier cette vidéo avec VigIA
+                </button>
+              </sc-if>
+              <sc-if value="{{ liMediaScanning }}" hint-placeholder-val="{{ false }}">
+                <div><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:13px;font-weight:700;"><span style="width:14px;height:14px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span>Analyse Vérif-Média en cours…</div><div style="position:relative;height:5px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+              </sc-if>
+              <sc-if value="{{ liMediaDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FCEBEC;border-radius:8px;border-left:4px solid #C8102E;padding:12px 14px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">⚠️</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-MÉDIA</span><span style="margin-left:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:#C8102E;">78%</span></div>
+                  <div style="font-size:13px;color:#11201A;font-weight:700;margin-top:5px;">Vidéo probablement synthétisée par IA.</div>
+                  <div style="font-size:12px;color:#65676B;margin-top:3px;">Le Ministère des Finances n'a publié aucune annonce vidéo ce jour.</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- Post B : Arnaque investissement -->
+          <div style="background:#fff;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px;">
+              <div style="width:46px;height:46px;border-radius:8px;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:12px;flex-shrink:0;text-align:center;line-height:1.2;">CMR<br>INV</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:#000;">CMR Invest Partners</div>
+                <div style="font-size:12px;color:#666;">Sponsorisé</div>
+              </div>
+              <span style="color:#666;font-size:20px;cursor:default;">⋯</span>
+            </div>
+            <div style="padding:0 16px 12px;font-size:14px;color:#000;line-height:1.5;">💰 Doublez votre investissement en 30 jours — Programme exclusif pour les Camerounais.<br><br>✅ 0 % de frais · ✅ Rendement garanti · ✅ Places limitées<br><br>Inscrivez-vous : <span style="color:#0A66C2;text-decoration:underline;">bit.ly/invest-cmr-2025</span></div>
+            <div style="padding:10px 16px;border-top:1px solid #e0e0e0;">
+              <sc-if value="{{ liLinkIdle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ scanLiLink }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:8px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Vérifier ce lien avec VigIA
+                </button>
+              </sc-if>
+              <sc-if value="{{ liLinkScanning }}" hint-placeholder-val="{{ false }}">
+                <div><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:13px;font-weight:700;"><span style="width:14px;height:14px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span>Analyse Vérif-Lien en cours…</div><div style="position:relative;height:5px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+              </sc-if>
+              <sc-if value="{{ liLinkDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FCEBEC;border-radius:8px;border-left:4px solid #C8102E;padding:12px 14px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">⚠️</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-LIEN</span></div>
+                  <div style="font-size:13px;color:#11201A;font-weight:700;margin-top:5px;">Arnaque identifiée — pyramide financière.</div>
+                  <div style="font-size:12px;color:#65676B;margin-top:3px;">Schéma Ponzi signalé. Ne transférez aucun fonds.</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- Post C : Faux compte ministère -->
+          <div style="background:#fff;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);overflow:hidden;">
+            <div style="padding:10px 16px 4px;font-size:12px;color:#666;font-weight:600;">Suggestion · Page que vous pourriez connaître</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 16px 14px;">
+              <div style="width:52px;height:52px;border-radius:8px;background:#b8d4e8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a5a8a;font-size:12px;flex-shrink:0;text-align:center;line-height:1.2;">MIN<br>COM</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:#000;">Ministère du Commerce du Cameroun</div>
+                <div style="font-size:12px;color:#666;">8 234 abonnés · 2 relations en commun</div>
+              </div>
+              <button style="background:transparent;color:#0A66C2;border:1.5px solid #0A66C2;border-radius:99px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Libre Franklin';white-space:nowrap;">+ Suivre</button>
+            </div>
+            <div style="padding:10px 16px;border-top:1px solid #e0e0e0;">
+              <sc-if value="{{ liAccountIdle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ scanLiAccount }}" style="display:flex;align-items:center;gap:10px;width:100%;justify-content:center;background:#EEF3F0;color:#0A5C42;border:1.5px solid #0A5C42;border-radius:8px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Libre Franklin';">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Vérifier cette page avec VigIA
+                </button>
+              </sc-if>
+              <sc-if value="{{ liAccountScanning }}" hint-placeholder-val="{{ false }}">
+                <div><div style="display:flex;align-items:center;gap:10px;color:#0A5C42;font-size:13px;font-weight:700;"><span style="width:14px;height:14px;border:2px solid #cfe0d8;border-top-color:#0A5C42;border-radius:99px;display:inline-block;animation:vigSpin .7s linear infinite;flex-shrink:0;"></span>Analyse Vérif-Compte en cours…</div><div style="position:relative;height:5px;border-radius:99px;background:#EDE9E2;margin-top:10px;overflow:hidden;"><div style="position:absolute;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,#0A5C42,transparent);animation:vigScan 1s linear infinite;"></div></div></div>
+              </sc-if>
+              <sc-if value="{{ liAccountDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FCEBEC;border-radius:8px;border-left:4px solid #C8102E;padding:12px 14px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">⚠️</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#C8102E;">VÉRIF-COMPTE</span></div>
+                  <div style="font-size:13px;color:#11201A;font-weight:700;margin-top:5px;">Usurpation d'identité institutionnelle détectée.</div>
+                  <div style="font-size:12px;color:#65676B;margin-top:3px;">Cette page n'est pas référencée dans le registre officiel camerounais.</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- Compte officiel confirmé (contre-exemple LinkedIn) -->
+          <div style="background:#fff;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;">
+              <div style="width:52px;height:52px;border-radius:8px;background:#0A5C42;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0;text-align:center;line-height:1.2;">CAM<br>POST</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:#000;">CAMPOST — La Poste du Cameroun</div>
+                <div style="font-size:12px;color:#666;">Vérifié par VigIA · Page officielle</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;background:#EEF3F0;border-radius:99px;padding:6px 12px;white-space:nowrap;"><span style="font-size:14px;">✅</span><span style="font-size:12px;font-weight:800;color:#0A5C42;">Compte officiel confirmé</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260,&quot;height&quot;:1400}}">
+class Component extends DCLogic {
+  state = {
+    fbPopup: false, fbMedia: 'idle', fbLink: 'idle', fbAccount: 'idle',
+    liPopup: false, liMedia: 'idle', liLink: 'idle', liAccount: 'idle',
+  };
+
+  _scan(key) {
     if (this.state[key] === 'scanning') return;
     this.setState({ [key]: 'scanning' });
-    setTimeout(() => this.setState({ [key]: 'done' }), delay || 1200);
+    setTimeout(() => this.setState({ [key]: 'done' }), 1200);
   }
 
-  scanAll() {
-    this.setState({ popupOpen: true });
-    ['media', 'link', 'account'].forEach((k, i) => {
+  _scanAll(keys) {
+    keys.forEach((k, i) => {
       if (this.state[k] !== 'done') {
         this.setState({ [k]: 'scanning' });
         setTimeout(() => this.setState({ [k]: 'done' }), 700 + i * 550);
@@ -225,31 +495,41 @@ class Component extends DCLogic {
     });
   }
 
-  reset() {
-    this.setState({ media: 'idle', link: 'idle', account: 'idle' });
-  }
-
   renderVals() {
     const s = this.state;
-    const done = k => s[k] === 'done';
-    const alerts = ['media', 'link', 'account'].filter(done).length;
+    const fbAlerts = ['fbMedia', 'fbLink', 'fbAccount'].filter(k => s[k] === 'done').length;
+    const liAlerts = ['liMedia', 'liLink', 'liAccount'].filter(k => s[k] === 'done').length;
+
     return {
-      popupOpen: s.popupOpen,
-      togglePopup: () => this.setState(st => ({ popupOpen: !st.popupOpen })),
-      scanMedia: () => this._scan('media'),
-      scanLink: () => this._scan('link'),
-      scanAccount: () => this._scan('account'),
-      scanAll: () => this.scanAll(),
-      reset: () => this.reset(),
+      // ── Facebook ──────────────────────────────────────────────────
+      fbPopup: s.fbPopup,
+      toggleFbPopup: () => this.setState(st => ({ fbPopup: !st.fbPopup })),
+      scanFbMedia:   () => this._scan('fbMedia'),
+      scanFbLink:    () => this._scan('fbLink'),
+      scanFbAccount: () => this._scan('fbAccount'),
+      scanFbAll:     () => { this.setState({ fbPopup: true }); this._scanAll(['fbMedia', 'fbLink', 'fbAccount']); },
+      resetFb:       () => this.setState({ fbMedia: 'idle', fbLink: 'idle', fbAccount: 'idle' }),
 
-      mediaIdle: s.media === 'idle', mediaScanning: s.media === 'scanning', mediaDone: s.media === 'done', mediaNotDone: s.media !== 'done',
-      linkIdle: s.link === 'idle', linkScanning: s.link === 'scanning', linkDone: s.link === 'done', linkNotDone: s.link !== 'done',
-      accountIdle: s.account === 'idle', accountScanning: s.account === 'scanning', accountDone: s.account === 'done', accountNotDone: s.account !== 'done',
+      fbMediaIdle: s.fbMedia === 'idle', fbMediaScanning: s.fbMedia === 'scanning', fbMediaDone: s.fbMedia === 'done', fbMediaNotDone: s.fbMedia !== 'done',
+      fbLinkIdle:  s.fbLink  === 'idle', fbLinkScanning:  s.fbLink  === 'scanning', fbLinkDone:  s.fbLink  === 'done', fbLinkNotDone:  s.fbLink  !== 'done',
+      fbAccountIdle: s.fbAccount === 'idle', fbAccountScanning: s.fbAccount === 'scanning', fbAccountDone: s.fbAccount === 'done', fbAccountNotDone: s.fbAccount !== 'done',
+      fbAlerts, fbAlertsWord: fbAlerts > 1 ? 'alertes' : 'alerte',
+      fbAnyDone: fbAlerts > 0, fbNoneDone: fbAlerts === 0,
 
-      alerts,
-      alertsWord: alerts > 1 ? 'alertes' : 'alerte',
-      anyDone: alerts > 0,
-      noneDone: alerts === 0,
+      // ── LinkedIn ──────────────────────────────────────────────────
+      liPopup: s.liPopup,
+      toggleLiPopup: () => this.setState(st => ({ liPopup: !st.liPopup })),
+      scanLiMedia:   () => this._scan('liMedia'),
+      scanLiLink:    () => this._scan('liLink'),
+      scanLiAccount: () => this._scan('liAccount'),
+      scanLiAll:     () => { this.setState({ liPopup: true }); this._scanAll(['liMedia', 'liLink', 'liAccount']); },
+      resetLi:       () => this.setState({ liMedia: 'idle', liLink: 'idle', liAccount: 'idle' }),
+
+      liMediaIdle: s.liMedia === 'idle', liMediaScanning: s.liMedia === 'scanning', liMediaDone: s.liMedia === 'done', liMediaNotDone: s.liMedia !== 'done',
+      liLinkIdle:  s.liLink  === 'idle', liLinkScanning:  s.liLink  === 'scanning', liLinkDone:  s.liLink  === 'done', liLinkNotDone:  s.liLink  !== 'done',
+      liAccountIdle: s.liAccount === 'idle', liAccountScanning: s.liAccount === 'scanning', liAccountDone: s.liAccount === 'done', liAccountNotDone: s.liAccount !== 'done',
+      liAlerts, liAlertsWord: liAlerts > 1 ? 'alertes' : 'alerte',
+      liAnyDone: liAlerts > 0, liNoneDone: liAlerts === 0,
     };
   }
 }
