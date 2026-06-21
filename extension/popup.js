@@ -3,17 +3,19 @@ const PLATFORMS = {
   'x.com': 'X', 'whatsapp.com': 'WhatsApp', 'linkedin.com': 'LinkedIn',
 };
 
-const MOD_RESULTS = { media: null, info: null, link: null, account: null };
+const MOD_RESULTS  = { media: null, info: null, link: null, account: null };
+const MOD_CONTENT  = { media: null, info: null, link: null, account: null }; // contenu analysé
+let   _pageUrl = '';
 
-// Fallback mock (utilisé uniquement si le content script est absent)
-const MOCK_RESULTS = {
-  media:   { level: 'red',   badge: '⚠ 82%',         label: 'Vidéo probablement manipulée par IA.' },
-  info:    { level: 'green', badge: '✓ RAS',          label: 'Aucun indicateur de désinformation.' },
-  link:    { level: 'red',   badge: '⚠ arnaque',      label: 'Arnaque connue — phishing Mobile Money.' },
-  account: { level: 'red',   badge: '⚠ non vérifié', label: 'Aucun compte officiel correspondant.' },
+// Résultats honnêtes quand aucun contenu détectable n'est trouvé sur la page
+const MOCK_NOTFOUND = {
+  media:   { level: 'green', badge: '✓ RAS', label: 'Aucun média suspect détecté sur cette page.',      score: null, explanation: '' },
+  info:    { level: 'green', badge: '✓ RAS', label: 'Aucun texte suspect ou généré par IA détecté.',    score: null, explanation: '' },
+  link:    { level: 'green', badge: '✓ RAS', label: 'Aucun lien suspect détecté sur cette page.',       score: null, explanation: '' },
+  account: { level: 'green', badge: '✓ RAS', label: 'Aucun profil à identifier sur cette page.',        score: null, explanation: '' },
 };
 
-const MOCK_DELAYS = { media: 1800, info: 1400, link: 1000, account: 1600 };
+const MOCK_DELAYS = { media: 900, info: 700, link: 500, account: 800 };
 
 // popup mod → content script context
 const MOD_TO_CTX = { media: 'video', info: 'text', link: 'link', account: 'account' };
@@ -75,7 +77,9 @@ function setModuleState(mod, state, result) {
   }
   if (state === 'done' && result) {
     const sp = document.createElement('span');
-    sp.className   = result.level === 'green' ? 'badge-green' : 'badge-red';
+    sp.className   = result.level === 'green' ? 'badge-green'
+                   : result.level === 'orange' ? 'badge-orange'
+                   : 'badge-red';
     sp.textContent = result.badge;
     act.appendChild(sp);
   }
@@ -122,6 +126,7 @@ function scanAll() {
   updateHeader();
 
   findSocialTab(tab => {
+    _pageUrl = tab?.url || '';
     if (!tab?.id) { pending.forEach(runMock); return; }
 
     chrome.tabs.sendMessage(tab.id, { type: 'SCAN_PAGE' }, page => {
@@ -131,27 +136,31 @@ function scanAll() {
       }
 
       if (pending.includes('info')) {
-        page.text?.length > 15
-          ? analyzeAndUpdate('text', { text: page.text }, 'info', tab.id)
-          : runMock('info');
+        if (page.text?.length > 15) {
+          MOD_CONTENT.info = { excerpt: page.text.slice(0, 800) };
+          analyzeAndUpdate('text', { text: page.text }, 'info', tab.id);
+        } else runMock('info');
       }
 
       if (pending.includes('media')) {
-        page.hasMedia
-          ? analyzeAndUpdate('image', { image_url: tab.url || '' }, 'media', tab.id)
-          : runMock('media');
+        if (page.hasMedia) {
+          MOD_CONTENT.media = { source: tab.url || '', hasVideo: document !== undefined };
+          analyzeAndUpdate('image', { image_url: tab.url || '' }, 'media', tab.id);
+        } else runMock('media');
       }
 
       if (pending.includes('link')) {
-        page.hasSuspLinks && page.firstSuspLink
-          ? analyzeAndUpdate('url', { url: page.firstSuspLink }, 'link', tab.id)
-          : runMock('link');
+        if (page.hasSuspLinks && page.firstSuspLink) {
+          MOD_CONTENT.link = { url: page.firstSuspLink };
+          analyzeAndUpdate('url', { url: page.firstSuspLink }, 'link', tab.id);
+        } else runMock('link');
       }
 
       if (pending.includes('account')) {
-        page.profileName
-          ? analyzeAndUpdate('account', { profile_name: page.profileName, profile_image_url: '' }, 'account', tab.id)
-          : runMock('account');
+        if (page.profileName) {
+          MOD_CONTENT.account = { name: page.profileName, pageUrl: tab.url || '' };
+          analyzeAndUpdate('account', { profile_name: page.profileName, profile_image_url: '' }, 'account', tab.id);
+        } else runMock('account');
       }
     });
   });
@@ -174,7 +183,7 @@ function analyzeAndUpdate(type, content, mod, tabId) {
                   : result.level === 'orange' ? (score != null ? `⚠ ${score}%` : '⚠ douteux')
                   : '✓ RAS';
 
-    applyResult(mod, { level: result.level, badge, label });
+    applyResult(mod, { level: result.level, badge, label, score, explanation: result.explanation || '' });
   });
 }
 
@@ -189,12 +198,12 @@ function applyResult(mod, result) {
   }
 }
 
-// ── Mock fallback ─────────────────────────────────────────────
+// ── Fallback "aucun contenu détecté" ─────────────────────────
 
 function runMock(mod) {
   setTimeout(() => {
     if (MOD_RESULTS[mod] !== null) return;
-    applyResult(mod, MOCK_RESULTS[mod]);
+    applyResult(mod, MOCK_NOTFOUND[mod]);
   }, MOCK_DELAYS[mod]);
 }
 
@@ -255,9 +264,10 @@ function sendReport() {
   findSocialTab(tab => {
     const report = {
       to:      email,
-      url:     tab?.url || '',
+      url:     tab?.url || _pageUrl || '',
       date:    new Date().toISOString(),
       results: MOD_RESULTS,
+      content: MOD_CONTENT,
     };
 
     chrome.runtime.sendMessage({ type: 'SEND_REPORT', payload: report }, resp => {

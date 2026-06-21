@@ -58,12 +58,14 @@ const SHIELD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" 
 
 // ── Floating CTA (UN seul élément fixe, zéro injection dans les posts) ─
 
-const FLOAT = (() => {
-  const el = document.createElement('div');
-  el.className = 'vigia-float';
-  document.body.appendChild(el);
-  return el;
-})();
+let FLOAT;
+try {
+  FLOAT = document.createElement('div');
+  FLOAT.className = 'vigia-float';
+  (document.body || document.documentElement).appendChild(FLOAT);
+} catch (_) {
+  FLOAT = document.createElement('div'); // orphelin — évite les crashs
+}
 
 let _post      = null;   // post actuellement survolé
 let _hasResult = false;  // un résultat est affiché → ne pas remplacer
@@ -145,7 +147,7 @@ function findMarkedPost(target) {
 
 document.addEventListener('mouseover', e => {
   // Hover sur le floating panel → garder visible
-  if (FLOAT.contains(e.target)) {
+  if (FLOAT && FLOAT.isConnected && FLOAT.contains(e.target)) {
     clearTimeout(_hideT);
     return;
   }
@@ -235,21 +237,26 @@ function getPageSummary() {
     'a[href*="linktr.ee"]',
   ].join(',')));
 
-  const profileName = [
-    document.querySelector('h1'),
-    document.querySelector('h2'),
-    document.querySelector('#fb-timeline-cover-name'),
-    document.querySelector('._2yap'),
-  ].map(el => el?.innerText?.trim()).find(t => t && t.length > 1) || '';
-
+  // Nom de profil — uniquement sur les pages de profil (pas le feed général)
   const slug = location.pathname.replace(/^\//, '').split('/')[0].split('?')[0];
+  const isProfilePage = slug.length > 2
+    && !['feed', 'watch', 'groups', 'events', 'marketplace', 'notifications', 'messages', 'home', ''].includes(slug);
+
+  const profileName = isProfilePage
+    ? ([
+        document.querySelector('h1'),
+        document.querySelector('h2'),
+        document.querySelector('[data-testid="UserName"]'),
+        document.querySelector('#fb-timeline-cover-name'),
+      ].map(el => el?.innerText?.trim()).find(t => t && t.length > 1) || slug)
+    : '';
 
   return {
     text,
     hasMedia,
     hasSuspLinks: suspLinks.length > 0,
     firstSuspLink: suspLinks[0]?.href || '',
-    profileName: profileName || slug,
+    profileName,
   };
 }
 
