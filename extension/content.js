@@ -3,9 +3,15 @@
 const SITE = (() => {
   const h = location.hostname;
   if (h.includes('facebook'))  return 'facebook';
-  if (h.includes('twitter') || h.includes('x.com')) return 'twitter';
+  if (h.includes('twitter') || h === 'x.com' || h.endsWith('.x.com')) return 'twitter';
   if (h.includes('whatsapp'))  return 'whatsapp';
   if (h.includes('linkedin'))  return 'linkedin';
+  if (h.includes('instagram')) return 'instagram';
+  if (h.includes('youtube'))   return 'youtube';
+  if (h.includes('tiktok'))    return 'tiktok';
+  if (h.includes('reddit'))    return 'reddit';
+  if (h.includes('telegram'))  return 'telegram';
+  if (h.includes('threads'))   return 'threads';
   return null;
 })();
 
@@ -16,16 +22,22 @@ if (!SITE) { /* site non supporté — arrêt silencieux */ }
 // On cible le conteneur de post entier, pas les sous-éléments.
 // Un seul bouton sera injecté par conteneur.
 const POST_SELECTORS = {
-  facebook: [
+  facebook:  [
     'div[role="article"]',
     'div[data-pagelet^="FeedUnit"]',
     'div[aria-posinset]',
-    'div.userContentWrapper',   // web.facebook.com
-    'div._5pcr',                // web.facebook.com classique
+    'div.userContentWrapper',
+    'div._5pcr',
   ],
-  twitter:  ['article[data-testid="tweet"]', 'article'],
-  whatsapp: ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
-  linkedin: ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
+  twitter:   ['article[data-testid="tweet"]', 'article'],
+  whatsapp:  ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
+  linkedin:  ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
+  instagram: ['article', 'div[role="presentation"] article', 'div._aagv', 'section main article'],
+  youtube:   ['ytd-rich-item-renderer', 'ytd-video-renderer', 'ytd-compact-video-renderer', '#primary ytd-watch-flexy'],
+  tiktok:    ['div[data-e2e="recommend-list-item-container"]', 'div[class*="DivItemContainerV2"]', 'div[class*="DivVideoFeedV2"]', 'article'],
+  reddit:    ['shreddit-post', 'div[data-testid="post-container"]', 'article', 'div.Post'],
+  telegram:  ['div.message.js-message-start', 'div.im_message_wrap', 'div[class*="im_message"]'],
+  threads:   ['div[data-pressable-container="true"]', 'article', 'div[role="article"]'],
 };
 
 // Labels selon le type de contenu détecté dans le post
@@ -52,20 +64,24 @@ const SHIELD_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 // ── Détection du type de contenu dans un post ─────────────────
 
 function detectContext(postEl) {
-  // Priorité : vidéo > lien suspect > texte
   if (postEl.querySelector('video')) return 'video';
 
-  const link = postEl.querySelector(
-    'a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*=".xyz"], a[href*="t.co"]'
-  );
+  const link = postEl.querySelector([
+    'a[href*="l.facebook.com/l.php"]', 'a[href*="bit.ly"]',
+    'a[href*=".xyz"]', 'a[href*="t.co"]', 'a[href*="linktr.ee"]',
+    'a[href*="tinyurl"]', 'a[href*="goo.gl"]',
+  ].join(','));
   if (link) return 'link';
 
-  const textEl = postEl.querySelector(
-    'div[dir="auto"], [data-testid="tweetText"], .break-words, span.selectable-text, p'
-  );
+  const textEl = postEl.querySelector([
+    'div[dir="auto"]', '[data-testid="tweetText"]', '.break-words',
+    'span.selectable-text', 'p', 'yt-formatted-string#content',
+    'span[class*="text"]', 'div[class*="text-content"]',
+    'div[data-e2e="browse-video-desc"]',
+  ].join(','));
   if (textEl?.innerText?.trim().length > 20) return 'text';
 
-  return null; // pas de contenu analysable
+  return null;
 }
 
 // ── Injection : UN bouton par post ─────────────────────────────
@@ -176,11 +192,16 @@ function getPageSummary() {
     .slice(0, 2000);
 
   const hasMedia = document.querySelectorAll('video').length > 0
-    || document.querySelectorAll('img[src*="fbcdn"], img[src*="scontent"], img[src*="licdn"]').length > 3;
+    || document.querySelectorAll([
+      'img[src*="fbcdn"]', 'img[src*="scontent"]', 'img[src*="licdn"]',
+      'img[src*="cdninstagram"]', 'img[src*="ytimg"]', 'img[src*="twimg"]',
+    ].join(',')).length > 3;
 
-  const suspLinks = Array.from(document.querySelectorAll(
-    'a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*=".xyz"], a[href*="t.co"]'
-  ));
+  const suspLinks = Array.from(document.querySelectorAll([
+    'a[href*="l.facebook.com/l.php"]', 'a[href*="bit.ly"]',
+    'a[href*=".xyz"]', 'a[href*="t.co"]', 'a[href*="tinyurl"]',
+    'a[href*="linktr.ee"]',
+  ].join(',')));
   const firstSuspLink = suspLinks[0]?.href || '';
 
   const profileName = [

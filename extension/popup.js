@@ -18,7 +18,11 @@ const MOCK_DELAYS = { media: 1800, info: 1400, link: 1000, account: 1600 };
 // popup mod → content script context
 const MOD_TO_CTX = { media: 'video', info: 'text', link: 'link', account: 'account' };
 
-const SUPPORTED_HOSTS = ['facebook.com', 'twitter.com', 'x.com', 'linkedin.com', 'web.whatsapp.com'];
+const SUPPORTED_HOSTS = [
+  'facebook.com', 'twitter.com', 'x.com', 'linkedin.com', 'web.whatsapp.com',
+  'instagram.com', 'youtube.com', 'tiktok.com', 'reddit.com',
+  'web.telegram.org', 'threads.net',
+];
 
 const SEVERITY = { red: 3, orange: 2, green: 1, error: 0 };
 
@@ -34,6 +38,7 @@ async function init() {
 
   document.getElementById('toggleEnabled').addEventListener('change', onToggle);
   document.getElementById('btnScanAll').addEventListener('click', scanAll);
+  document.getElementById('btnSendReport').addEventListener('click', sendReport);
 }
 
 // ── Toggle ────────────────────────────────────────────────────
@@ -220,6 +225,53 @@ function updateHeader() {
     document.getElementById('alertCount').textContent = alerts;
     document.getElementById('alertWord').textContent  = alerts <= 1 ? 'alerte détectée' : 'alertes détectées';
   }
+}
+
+// ── Envoi rapport par email ───────────────────────────────────
+
+function sendReport() {
+  const emailInput = document.getElementById('emailInput');
+  const status     = document.getElementById('emailStatus');
+  const btn        = document.getElementById('btnSendReport');
+
+  const email = emailInput.value.trim();
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    status.textContent = 'Adresse email invalide.';
+    status.className   = 'email-status err';
+    return;
+  }
+
+  const hasResults = Object.values(MOD_RESULTS).some(r => r !== null);
+  if (!hasResults) {
+    status.textContent = 'Lancez d\'abord une analyse.';
+    status.className   = 'email-status err';
+    return;
+  }
+
+  btn.disabled       = true;
+  status.textContent = 'Envoi en cours…';
+  status.className   = 'email-status';
+
+  findSocialTab(tab => {
+    const report = {
+      to:      email,
+      url:     tab?.url || '',
+      date:    new Date().toISOString(),
+      results: MOD_RESULTS,
+    };
+
+    chrome.runtime.sendMessage({ type: 'SEND_REPORT', payload: report }, resp => {
+      btn.disabled = false;
+      if (resp?.ok) {
+        status.textContent = `Rapport envoyé à ${email} ✓`;
+        status.className   = 'email-status';
+        emailInput.value   = '';
+      } else {
+        status.textContent = resp?.error || 'Erreur d\'envoi. Réessayez.';
+        status.className   = 'email-status err';
+      }
+    });
+  });
 }
 
 init();

@@ -16,6 +16,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     submitReport(message.payload).then(sendResponse);
     return true;
   }
+  if (message.type === 'SEND_REPORT') {
+    sendEmailReport(message.payload).then(sendResponse);
+    return true;
+  }
 });
 
 // ---------- Vérification principale ----------
@@ -100,25 +104,44 @@ function simulateAnalysis(body) {
         }
 
         case 'text': {
-          // Textes : détecter mots-clés d'alerte
           const alertWords = ['urgent', 'massif', 'choc', 'exclusif', 'partager', 'investissement', 'garanti', 'doublez'];
-          const hits = alertWords.filter(w => text.toLowerCase().includes(w));
-          if (hits.length >= 2) {
+          const alertHits = alertWords.filter(w => text.toLowerCase().includes(w));
+
+          // Détection texte généré par IA
+          const aiPatterns = [
+            /il est (important|crucial|essentiel) de/i,
+            /il convient de (noter|souligner|mentionner)/i,
+            /en (conclusion|résumé|bref)[,\s]/i,
+            /d[''']une part.{1,60}d[''']autre part/is,
+            /dans (ce|cet) contexte/i,
+            /nous (pouvons|allons|devons) (noter|explorer|examiner)/i,
+            /cependant.{1,40}néanmoins/i,
+            /à (cet égard|titre d[''']exemple)/i,
+          ];
+          const aiHits = aiPatterns.filter(p => p.test(text));
+
+          if (alertHits.length >= 2) {
             result = {
               level: 'red',
               modules: { info: { score: 0.78, label: 'Contenu à fort potentiel de désinformation.' } },
-              explanation: `Termes d'alerte détectés : ${hits.slice(0,3).join(', ')}. Vérifiez la source avant de partager.`
+              explanation: `Termes d'alerte détectés : ${alertHits.slice(0,3).join(', ')}. Vérifiez la source avant de partager.`
             };
-          } else if (hits.length === 1) {
+          } else if (aiHits.length >= 2) {
             result = {
               level: 'orange',
-              modules: { info: { score: 0.45, label: 'Ton sensationnaliste — à vérifier.' } },
-              explanation: 'Le contenu utilise un ton émotionnel fort. Cherchez une source officielle.'
+              modules: { info: { score: 0.65, label: 'Contenu probablement généré par IA.' } },
+              explanation: 'Structures rhétoriques caractéristiques d\'un texte IA détectées. Vérifiez l\'authenticité de la source.'
+            };
+          } else if (alertHits.length === 1 || aiHits.length === 1) {
+            result = {
+              level: 'orange',
+              modules: { info: { score: 0.45, label: 'Ton inhabituel — à vérifier.' } },
+              explanation: 'Le contenu présente des caractéristiques inhabituelles. Cherchez une source officielle.'
             };
           } else {
             result = {
               level: 'green',
-              modules: { info: { score: 0.12, label: 'Aucun indicateur de désinformation détecté.' } },
+              modules: { info: { score: 0.12, label: 'Aucun indicateur de désinformation ou IA détecté.' } },
               explanation: ''
             };
           }
@@ -195,6 +218,30 @@ function simulateAnalysis(body) {
       resolve(result);
     }, delay);
   });
+}
+
+// ---------- Envoi de rapport par email ----------
+
+async function sendEmailReport(payload) {
+  const { to, url, date, results } = payload;
+
+  const endpoints = [
+    `${API_BASE}/send-report`,
+    'http://localhost:3000/api/send-report',
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, url, date, results }),
+      });
+      if (res.ok) return { ok: true };
+    } catch (_) {}
+  }
+
+  return { ok: false, error: 'Serveur de mail indisponible. Démarrez le serveur local (npm run dev).' };
 }
 
 // ---------- Signalement ----------

@@ -182,6 +182,39 @@
     }
     .btn-scan-all:hover { opacity: .88; }
 
+    /* ── EMAIL RAPPORT ── */
+    .email-section { margin-top: 14px; border-top: 1px solid #e8e6df; padding-top: 12px; }
+    .email-row { display: flex; gap: 6px; margin-top: 8px; }
+    .email-input {
+      flex: 1;
+      border: 1px solid #e0ddd6;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-family: 'Libre Franklin', sans-serif;
+      outline: none;
+      color: #11201A;
+      background: #fafaf8;
+    }
+    .email-input:focus { border-color: #0A5C42; background: #fff; }
+    .btn-email {
+      background: #0A5C42;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Libre Franklin', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .14s;
+    }
+    .btn-email:hover { opacity: .85; }
+    .btn-email:disabled { opacity: .45; cursor: not-allowed; }
+    .email-status { font-size: 11px; margin-top: 5px; min-height: 15px; color: #0A5C42; }
+    .email-status.err { color: #C8102E; }
+
     /* ── DISABLED BANNER ── */
     .disabled-banner {
       display: none;
@@ -242,7 +275,7 @@
     </div>
     <div class="mod-row">
       <span class="mod-name">Vérif-Info</span>
-      <span class="mod-desc">Fact-checking</span>
+      <span class="mod-desc">Fact-checking &amp; IA</span>
       <span class="mod-act" id="act-info"></span>
     </div>
     <div class="mod-row">
@@ -259,6 +292,16 @@
 
   <!-- ACTIONS -->
   <button class="btn-scan-all" id="btnScanAll">Tout vérifier sur cette page</button>
+
+  <!-- RAPPORT PAR EMAIL -->
+  <div class="email-section">
+    <div class="section-lbl">Recevoir le rapport par email</div>
+    <div class="email-row">
+      <input type="email" id="emailInput" class="email-input" placeholder="votre@email.com">
+      <button id="btnSendReport" class="btn-email">Envoyer</button>
+    </div>
+    <div class="email-status" id="emailStatus"></div>
+  </div>
 </div>
 
 <script src="popup.js"></script>

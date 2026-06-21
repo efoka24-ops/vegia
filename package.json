@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev":          "node scripts/dev-server.js",
-    "test":         "playwright test",
-    "test:headed":  "playwright test --headed",
-    "zip":          "node scripts/make-extension-zip.js"
+    "dev": "node scripts/dev-server.js",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "zip": "node scripts/make-extension-zip.js"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,9 @@
     "url": "https://github.com/efoka24-ops/vegia/issues"
   },
   "homepage": "https://github.com/efoka24-ops/vegia#readme",
+  "dependencies": {
+    "nodemailer": "^6.10.1"
+  },
   "devDependencies": {
     "@playwright/test": "^1.61.0"
   }
