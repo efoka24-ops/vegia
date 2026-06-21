@@ -15,12 +15,8 @@ const SITE = (() => {
   return null;
 })();
 
-if (!SITE) { /* site non supporté — arrêt silencieux */ }
+// ── Sélecteurs de conteneur de post ───────────────────────────
 
-// ── Sélecteurs : UN conteneur par post ────────────────────────
-
-// On cible le conteneur de post entier, pas les sous-éléments.
-// Un seul bouton sera injecté par conteneur.
 const POST_SELECTORS = {
   facebook:  [
     'div[role="article"]',
@@ -32,15 +28,14 @@ const POST_SELECTORS = {
   twitter:   ['article[data-testid="tweet"]', 'article'],
   whatsapp:  ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
   linkedin:  ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
-  instagram: ['article', 'div[role="presentation"] article', 'div._aagv', 'section main article'],
+  instagram: ['article', 'div[role="presentation"] article', 'section main article'],
   youtube:   ['ytd-rich-item-renderer', 'ytd-video-renderer', 'ytd-compact-video-renderer', '#primary ytd-watch-flexy'],
-  tiktok:    ['div[data-e2e="recommend-list-item-container"]', 'div[class*="DivItemContainerV2"]', 'div[class*="DivVideoFeedV2"]', 'article'],
+  tiktok:    ['div[data-e2e="recommend-list-item-container"]', 'div[class*="DivItemContainerV2"]', 'article'],
   reddit:    ['shreddit-post', 'div[data-testid="post-container"]', 'article', 'div.Post'],
-  telegram:  ['div.message.js-message-start', 'div.im_message_wrap', 'div[class*="im_message"]'],
+  telegram:  ['div.message.js-message-start', 'div.im_message_wrap'],
   threads:   ['div[data-pressable-container="true"]', 'article', 'div[role="article"]'],
 };
 
-// Labels selon le type de contenu détecté dans le post
 const CTX_LABELS = {
   video:   'Vérifier cette vidéo avec VigIA',
   text:    'Vérifier cette information avec VigIA',
@@ -59,9 +54,88 @@ const CTX_TO_MOD = {
   video: 'media', text: 'info', link: 'link', account: 'account',
 };
 
-const SHIELD_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#0A5C42"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SHIELD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff" fill-opacity=".9"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-// ── Détection du type de contenu dans un post ─────────────────
+// ── Floating CTA (UN seul élément, position:fixed, invisible par défaut) ──
+
+const FLOAT = (() => {
+  const el = document.createElement('div');
+  el.className = 'vigia-float';
+  document.body.appendChild(el);
+  return el;
+})();
+
+let _post    = null;
+let _ctx     = null;
+let _hideT   = null;
+let _hasResult = false;
+
+function showFloat(postEl, ctx) {
+  clearTimeout(_hideT);
+  _post = postEl;
+  _ctx  = ctx;
+
+  positionFloat(postEl);
+
+  if (!_hasResult) {
+    renderIdleBtn(postEl, ctx);
+  }
+
+  FLOAT.classList.add('vigia-float--on');
+}
+
+function positionFloat(postEl) {
+  const r = postEl.getBoundingClientRect();
+  const W = 300;
+  const left = Math.max(8, Math.min(
+    r.left + (r.width - W) / 2,
+    window.innerWidth - W - 8
+  ));
+  const top = Math.max(8, Math.min(
+    r.bottom - 50,
+    window.innerHeight - 64
+  ));
+  FLOAT.style.left  = left + 'px';
+  FLOAT.style.top   = top  + 'px';
+  FLOAT.style.width = W    + 'px';
+}
+
+function renderIdleBtn(postEl, ctx) {
+  _hasResult = false;
+  FLOAT.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.className = 'vigia-float-btn';
+  btn.innerHTML = `${SHIELD_SVG}<span>${CTX_LABELS[ctx]}</span>`;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    _hasResult = true;
+    triggerAnalysis(postEl, ctx, FLOAT);
+  });
+  FLOAT.appendChild(btn);
+}
+
+function scheduleHide() {
+  const delay = _hasResult ? 6000 : 280;
+  _hideT = setTimeout(() => {
+    FLOAT.classList.remove('vigia-float--on');
+    _post = null;
+    _ctx  = null;
+    _hasResult = false;
+  }, delay);
+}
+
+FLOAT.addEventListener('mouseenter', () => clearTimeout(_hideT));
+FLOAT.addEventListener('mouseleave', scheduleHide);
+
+// Mettre à jour la position au scroll (le float suit le post)
+window.addEventListener('scroll', () => {
+  if (_post && FLOAT.classList.contains('vigia-float--on')) {
+    positionFloat(_post);
+  }
+}, { passive: true });
+
+// ── Détection du type de contenu ───────────────────────────────
 
 function detectContext(postEl) {
   if (postEl.querySelector('video')) return 'video';
@@ -84,14 +158,27 @@ function detectContext(postEl) {
   return null;
 }
 
-// ── Injection : UN bouton par post ─────────────────────────────
+// ── Attacher le hover sur chaque post (sans modifier son DOM) ──
+
+function attachHover(postEl) {
+  if (postEl.dataset.vigiaOk) return;
+  const ctx = detectContext(postEl);
+  if (!ctx) { postEl.dataset.vigiaOk = 'skip'; return; }
+
+  postEl.dataset.vigiaOk = '1';
+
+  postEl.addEventListener('mouseenter', () => {
+    if (!_hasResult) showFloat(postEl, ctx);
+  });
+
+  postEl.addEventListener('mouseleave', e => {
+    if (!FLOAT.contains(e.relatedTarget)) scheduleHide();
+  });
+}
 
 function injectButtons() {
   if (!SITE) return;
-
   const selectors = POST_SELECTORS[SITE] || [];
-
-  // Chercher les conteneurs de post dans l'ordre de priorité
   let posts = [];
   for (const sel of selectors) {
     try {
@@ -99,88 +186,12 @@ function injectButtons() {
       if (els.length) { posts = els; break; }
     } catch (_) {}
   }
-
-  posts.slice(0, 20).forEach(attachOneButton);
-
-  // Page de profil : ajouter un bouton "Vérifier ce compte"
-  injectProfileButton();
-}
-
-function attachOneButton(postEl) {
-  if (postEl.dataset.vigiaOk) return;
-
-  const context = detectContext(postEl);
-  if (!context) {
-    // Marquer quand même pour ne pas ré-essayer à chaque mutation
-    postEl.dataset.vigiaOk = 'skip';
-    return;
-  }
-
-  postEl.dataset.vigiaOk = '1';
-
-  const cta = document.createElement('div');
-  cta.className = 'vigia-cta';
-  cta.dataset.vigiaContext = context;
-
-  const btn = document.createElement('button');
-  btn.className = 'vigia-btn';
-  btn.innerHTML = `${SHIELD_SVG}${CTX_LABELS[context]}`;
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    e.preventDefault();
-    triggerAnalysis(postEl, context, cta);
-  });
-
-  cta.appendChild(btn);
-
-  // Insérer à la FIN du post (comme un footer natif)
-  // On utilise appendChild : le bouton s'ajoute après tout le contenu du post
-  try {
-    postEl.appendChild(cta);
-  } catch (_) {
-    try { postEl.insertAdjacentElement('afterend', cta); } catch (__) {}
-  }
-}
-
-// ── Bouton "Vérifier ce compte" sur page de profil ─────────────
-
-function injectProfileButton() {
-  // Détecte si on est sur une page de profil (URL = /pseudo ou /profile.php)
-  const isProfilePage =
-    /^\/(?!groups|pages|watch|events|marketplace|gaming)[^/?#]+\/?$/.test(location.pathname) ||
-    location.pathname.includes('/profile.php');
-
-  if (!isProfilePage) return;
-
-  const profileZone = document.querySelector(
-    'h1, [id*="profile"], [data-pagelet="ProfileTilesFeed"], .profileTimeline, #timeline'
-  );
-  if (!profileZone || profileZone.dataset.vigiaProfileOk) return;
-  profileZone.dataset.vigiaProfileOk = '1';
-
-  const cta = document.createElement('div');
-  cta.className = 'vigia-cta vigia-cta--profile';
-  cta.dataset.vigiaContext = 'account';
-
-  const btn = document.createElement('button');
-  btn.className = 'vigia-btn';
-  btn.innerHTML = `${SHIELD_SVG}${CTX_LABELS.account}`;
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    e.preventDefault();
-    triggerAnalysis(profileZone, 'account', cta);
-  });
-
-  cta.appendChild(btn);
-
-  // Insérer après la zone de profil
-  try { profileZone.insertAdjacentElement('afterend', cta); } catch (_) {}
+  posts.slice(0, 30).forEach(attachHover);
 }
 
 // ── Lecture de la page (pour popup "Tout vérifier") ────────────
 
 function getPageSummary() {
-  // Texte des posts
   const textEls = Array.from(document.querySelectorAll(
     'div[dir="auto"], [data-testid="tweetText"], .break-words, span.selectable-text, p'
   ));
@@ -288,16 +299,19 @@ function notifyPopup(context, result) {
   try { chrome.runtime.sendMessage({ type: 'SCAN_RESULT', mod, result: { level, badge, label } }); } catch (_) {}
 }
 
-// ── États CTA ─────────────────────────────────────────────────
+// ── États du floating panel ────────────────────────────────────
 
 function setCtaLoading(cta) {
   cta.innerHTML = `
-    <div class="vigia-loading"><span class="vigia-spinner"></span>Analyse en cours…</div>
-    <div class="vigia-scan-bar"><div class="vigia-scan-progress"></div></div>`;
+    <div class="vigia-loading">
+      <span class="vigia-spinner"></span>Analyse en cours…
+    </div>`;
 }
 
 function setCtaError(cta, msg) {
+  _hasResult = false;
   cta.innerHTML = `<div class="vigia-error">${msg}</div>`;
+  setTimeout(() => { cta.classList.remove('vigia-float--on'); }, 3000);
 }
 
 function renderResult(cta, result, context) {
@@ -316,11 +330,18 @@ function renderResult(cta, result, context) {
         <span class="vigia-result-icon">${icons[level] || '❓'}</span>
         <span class="vigia-result-module">${module}</span>
         ${score !== null ? `<span class="vigia-result-score">${score}%</span>` : ''}
+        <button class="vigia-result-close" title="Fermer">✕</button>
       </div>
       <div class="vigia-result-label">${escHtml(label)}</div>
       ${detail ? `<div class="vigia-result-detail">${escHtml(detail)}</div>` : ''}
       <button class="vigia-result-report">Signaler</button>
     </div>`;
+
+  cta.querySelector('.vigia-result-close')?.addEventListener('click', e => {
+    e.stopPropagation();
+    FLOAT.classList.remove('vigia-float--on');
+    _hasResult = false;
+  });
 
   cta.querySelector('.vigia-result-report')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -328,6 +349,14 @@ function renderResult(cta, result, context) {
     e.target.textContent = 'Signalé ✓';
     e.target.disabled = true;
   });
+
+  // Auto-fermeture après 10 secondes
+  setTimeout(() => {
+    if (_hasResult) {
+      FLOAT.classList.remove('vigia-float--on');
+      _hasResult = false;
+    }
+  }, 10000);
 }
 
 // ── Listener messages du popup ─────────────────────────────────
@@ -341,43 +370,25 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
 
   if (msg.type === 'SCAN_ALL') {
     try { injectButtons(); } catch (_) {}
-    setTimeout(() => {
-      const btns = Array.from(document.querySelectorAll('.vigia-btn'));
-      btns.forEach(b => { try { b.click(); } catch (_) {} });
-      sendResponse({ ok: true, found: btns.length });
-    }, 500);
-    return true;
+    sendResponse({ ok: true });
+    return false;
   }
 
   if (msg.type === 'SCAN_MODULE') {
-    // Pour les boutons individuels du popup, cliquer les boutons du bon contexte
-    const { context } = msg;
-    const ctxMap = { media: 'video', info: 'text', link: 'link', account: 'account' };
-    const wantedCtx = ctxMap[context] || context;
-    setTimeout(() => {
-      const ctas = document.querySelectorAll(`.vigia-cta[data-vigia-context="${wantedCtx}"]`);
-      let found = 0;
-      ctas.forEach(cta => {
-        const btn = cta.querySelector('.vigia-btn');
-        if (btn) { btn.click(); found++; }
-      });
-      sendResponse({ ok: true, found });
-    }, 400);
-    return true;
+    sendResponse({ ok: true, found: 0 });
+    return false;
   }
 });
 
 // ── MutationObserver + démarrage ──────────────────────────────
 
 if (SITE) {
-  // Injecter les boutons au chargement
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { try { injectButtons(); } catch (_) {} });
   } else {
     try { injectButtons(); } catch (_) {}
   }
 
-  // Ré-injecter quand de nouveaux posts sont chargés (scroll infini)
   let injectTimer = null;
   const mo = new MutationObserver(() => {
     clearTimeout(injectTimer);
