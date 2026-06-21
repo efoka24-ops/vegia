@@ -56,7 +56,7 @@ const CTX_TO_MOD = {
 
 const SHIELD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff" fill-opacity=".9"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-// ── Floating CTA (UN seul élément, position:fixed, invisible par défaut) ──
+// ── Floating CTA (UN seul élément fixe, zéro injection dans les posts) ─
 
 const FLOAT = (() => {
   const el = document.createElement('div');
@@ -65,22 +65,18 @@ const FLOAT = (() => {
   return el;
 })();
 
-let _post    = null;
-let _ctx     = null;
-let _hideT   = null;
-let _hasResult = false;
+let _post      = null;   // post actuellement survolé
+let _hasResult = false;  // un résultat est affiché → ne pas remplacer
+let _hideT     = null;
 
 function showFloat(postEl, ctx) {
+  if (_post === postEl && FLOAT.classList.contains('vigia-float--on')) return; // déjà affiché pour ce post
+
   clearTimeout(_hideT);
   _post = postEl;
-  _ctx  = ctx;
 
   positionFloat(postEl);
-
-  if (!_hasResult) {
-    renderIdleBtn(postEl, ctx);
-  }
-
+  renderIdleBtn(postEl, ctx);
   FLOAT.classList.add('vigia-float--on');
 }
 
@@ -91,9 +87,10 @@ function positionFloat(postEl) {
     r.left + (r.width - W) / 2,
     window.innerWidth - W - 8
   ));
+  // Positionner en bas du post, visible dans le viewport
   const top = Math.max(8, Math.min(
-    r.bottom - 50,
-    window.innerHeight - 64
+    r.bottom - 52,
+    window.innerHeight - 60
   ));
   FLOAT.style.left  = left + 'px';
   FLOAT.style.top   = top  + 'px';
@@ -101,7 +98,6 @@ function positionFloat(postEl) {
 }
 
 function renderIdleBtn(postEl, ctx) {
-  _hasResult = false;
   FLOAT.innerHTML = '';
   const btn = document.createElement('button');
   btn.className = 'vigia-float-btn';
@@ -116,26 +112,53 @@ function renderIdleBtn(postEl, ctx) {
 }
 
 function scheduleHide() {
-  const delay = _hasResult ? 6000 : 280;
+  if (_hasResult) return; // ne pas cacher pendant qu'un résultat est affiché
+  clearTimeout(_hideT);
   _hideT = setTimeout(() => {
     FLOAT.classList.remove('vigia-float--on');
     _post = null;
-    _ctx  = null;
-    _hasResult = false;
-  }, delay);
+  }, 350);
 }
 
-FLOAT.addEventListener('mouseenter', () => clearTimeout(_hideT));
-FLOAT.addEventListener('mouseleave', scheduleHide);
-
-// Mettre à jour la position au scroll (le float suit le post)
+// Mise à jour de la position au scroll
 window.addEventListener('scroll', () => {
-  if (_post && FLOAT.classList.contains('vigia-float--on')) {
+  if (_post && FLOAT.classList.contains('vigia-float--on') && !_hasResult) {
     positionFloat(_post);
   }
 }, { passive: true });
 
-// ── Détection du type de contenu ───────────────────────────────
+// ── Event delegation : mouseover sur document (robuste face aux overlays) ─
+// Utiliser mouseover (bubblement) + closest() plutôt que mouseenter direct
+// → fonctionne même si un overlay transparent intercepte les events
+
+const POST_SEL_FLAT = (POST_SELECTORS[SITE] || []).join(',');
+
+document.addEventListener('mouseover', e => {
+  // Hover sur le floating panel lui-même → garder visible
+  if (FLOAT.contains(e.target)) {
+    clearTimeout(_hideT);
+    return;
+  }
+
+  // Un résultat est affiché → ne rien changer
+  if (_hasResult) return;
+
+  // Chercher le post le plus proche dans la hiérarchie DOM
+  let postEl = null;
+  if (POST_SEL_FLAT) {
+    try { postEl = e.target.closest(POST_SEL_FLAT); } catch (_) {}
+  }
+
+  if (postEl && postEl.dataset.vigiaOk === '1') {
+    // Cursor sur un post détecté → afficher le bouton
+    showFloat(postEl, postEl.dataset.vigiaCtx);
+  } else if (!postEl) {
+    // Cursor hors de tout post → planifier la disparition
+    scheduleHide();
+  }
+}, { passive: true });
+
+// ── Marquer les posts et stocker leur contexte ─────────────────
 
 function detectContext(postEl) {
   if (postEl.querySelector('video')) return 'video';
@@ -155,29 +178,16 @@ function detectContext(postEl) {
   ].join(','));
   if (textEl?.innerText?.trim().length > 20) return 'text';
 
+  // Fallback : texte brut de l'élément entier
+  const raw = postEl.innerText?.trim();
+  if (raw && raw.length > 30) return 'text';
+
   return null;
 }
 
-// ── Attacher le hover sur chaque post (sans modifier son DOM) ──
+function markPosts() {
+  if (!SITE || !POST_SEL_FLAT) return;
 
-function attachHover(postEl) {
-  if (postEl.dataset.vigiaOk) return;
-  const ctx = detectContext(postEl);
-  if (!ctx) { postEl.dataset.vigiaOk = 'skip'; return; }
-
-  postEl.dataset.vigiaOk = '1';
-
-  postEl.addEventListener('mouseenter', () => {
-    if (!_hasResult) showFloat(postEl, ctx);
-  });
-
-  postEl.addEventListener('mouseleave', e => {
-    if (!FLOAT.contains(e.relatedTarget)) scheduleHide();
-  });
-}
-
-function injectButtons() {
-  if (!SITE) return;
   const selectors = POST_SELECTORS[SITE] || [];
   let posts = [];
   for (const sel of selectors) {
@@ -186,10 +196,17 @@ function injectButtons() {
       if (els.length) { posts = els; break; }
     } catch (_) {}
   }
-  posts.slice(0, 30).forEach(attachHover);
+
+  posts.slice(0, 40).forEach(postEl => {
+    if (postEl.dataset.vigiaOk) return;
+    const ctx = detectContext(postEl);
+    if (!ctx) { postEl.dataset.vigiaOk = 'skip'; return; }
+    postEl.dataset.vigiaOk  = '1';
+    postEl.dataset.vigiaCtx = ctx;
+  });
 }
 
-// ── Lecture de la page (pour popup "Tout vérifier") ────────────
+// ── Lecture de la page (popup "Tout vérifier") ────────────────
 
 function getPageSummary() {
   const textEls = Array.from(document.querySelectorAll(
@@ -213,7 +230,6 @@ function getPageSummary() {
     'a[href*=".xyz"]', 'a[href*="t.co"]', 'a[href*="tinyurl"]',
     'a[href*="linktr.ee"]',
   ].join(',')));
-  const firstSuspLink = suspLinks[0]?.href || '';
 
   const profileName = [
     document.querySelector('h1'),
@@ -228,7 +244,7 @@ function getPageSummary() {
     text,
     hasMedia,
     hasSuspLinks: suspLinks.length > 0,
-    firstSuspLink,
+    firstSuspLink: suspLinks[0]?.href || '',
     profileName: profileName || slug,
   };
 }
@@ -257,27 +273,23 @@ function buildPayload(postEl, context) {
     const src = vid?.src || vid?.querySelector('source')?.src || location.href;
     return { type: 'image', content: { image_url: src }, source: SITE, cacheKey: `vid:${simpleHash(src)}` };
   }
-
   if (context === 'link') {
     const a = postEl.querySelector('a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*="t.co"]');
     if (!a) return null;
     return { type: 'url', content: { url: a.href }, source: SITE, cacheKey: `url:${a.href}` };
   }
-
   if (context === 'text') {
     const textEl = postEl.querySelector('div[dir="auto"], [data-testid="tweetText"], .break-words, p') || postEl;
     const text = textEl.innerText?.trim();
     if (!text || text.length < 15) return null;
     return { type: 'text', content: { text: text.slice(0, 1000) }, source: SITE, cacheKey: `txt:${simpleHash(text)}` };
   }
-
   if (context === 'account') {
     const name = postEl.querySelector('h1, h2')?.innerText?.trim()
       || postEl.getAttribute('aria-label')
       || location.pathname.replace(/^\//, '').split('/')[0];
     return { type: 'account', content: { profile_name: name, profile_image_url: '' }, source: SITE, cacheKey: `acc:${simpleHash(name)}` };
   }
-
   return null;
 }
 
@@ -311,7 +323,7 @@ function setCtaLoading(cta) {
 function setCtaError(cta, msg) {
   _hasResult = false;
   cta.innerHTML = `<div class="vigia-error">${msg}</div>`;
-  setTimeout(() => { cta.classList.remove('vigia-float--on'); }, 3000);
+  setTimeout(scheduleHide, 3000);
 }
 
 function renderResult(cta, result, context) {
@@ -339,8 +351,9 @@ function renderResult(cta, result, context) {
 
   cta.querySelector('.vigia-result-close')?.addEventListener('click', e => {
     e.stopPropagation();
-    FLOAT.classList.remove('vigia-float--on');
     _hasResult = false;
+    _post = null;
+    FLOAT.classList.remove('vigia-float--on');
   });
 
   cta.querySelector('.vigia-result-report')?.addEventListener('click', e => {
@@ -350,13 +363,14 @@ function renderResult(cta, result, context) {
     e.target.disabled = true;
   });
 
-  // Auto-fermeture après 10 secondes
+  // Auto-fermeture après 12 secondes
   setTimeout(() => {
     if (_hasResult) {
-      FLOAT.classList.remove('vigia-float--on');
       _hasResult = false;
+      _post = null;
+      FLOAT.classList.remove('vigia-float--on');
     }
-  }, 10000);
+  }, 12000);
 }
 
 // ── Listener messages du popup ─────────────────────────────────
@@ -367,15 +381,8 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
     catch (e) { sendResponse({ ok: false, error: String(e) }); }
     return false;
   }
-
-  if (msg.type === 'SCAN_ALL') {
-    try { injectButtons(); } catch (_) {}
+  if (msg.type === 'SCAN_ALL' || msg.type === 'SCAN_MODULE') {
     sendResponse({ ok: true });
-    return false;
-  }
-
-  if (msg.type === 'SCAN_MODULE') {
-    sendResponse({ ok: true, found: 0 });
     return false;
   }
 });
@@ -384,15 +391,15 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
 
 if (SITE) {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { try { injectButtons(); } catch (_) {} });
+    document.addEventListener('DOMContentLoaded', () => { try { markPosts(); } catch (_) {} });
   } else {
-    try { injectButtons(); } catch (_) {}
+    try { markPosts(); } catch (_) {}
   }
 
-  let injectTimer = null;
+  let markTimer = null;
   const mo = new MutationObserver(() => {
-    clearTimeout(injectTimer);
-    injectTimer = setTimeout(() => { try { injectButtons(); } catch (_) {} }, 600);
+    clearTimeout(markTimer);
+    markTimer = setTimeout(() => { try { markPosts(); } catch (_) {} }, 600);
   });
   mo.observe(document.body, { childList: true, subtree: true });
 }
