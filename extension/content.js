@@ -128,32 +128,36 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ── Event delegation : mouseover sur document (robuste face aux overlays) ─
-// Utiliser mouseover (bubblement) + closest() plutôt que mouseenter direct
-// → fonctionne même si un overlay transparent intercepte les events
+// Utiliser mouseover (bubblement) + closest() plutôt que mouseenter direct.
+// On itère chaque sélecteur séparément pour trouver l'ancêtre MARQUÉ le plus
+// proche, évitant que closest(csv) ne remonte vers un élément non marqué.
 
-const POST_SEL_FLAT = (POST_SELECTORS[SITE] || []).join(',');
+function findMarkedPost(target) {
+  const selectors = POST_SELECTORS[SITE] || [];
+  for (const sel of selectors) {
+    try {
+      const el = target.closest(sel);
+      if (el && el.dataset.vigiaOk === '1') return el;
+    } catch (_) {}
+  }
+  return null;
+}
 
 document.addEventListener('mouseover', e => {
-  // Hover sur le floating panel lui-même → garder visible
+  // Hover sur le floating panel → garder visible
   if (FLOAT.contains(e.target)) {
     clearTimeout(_hideT);
     return;
   }
 
-  // Un résultat est affiché → ne rien changer
+  // Un résultat est affiché → ne pas perturber
   if (_hasResult) return;
 
-  // Chercher le post le plus proche dans la hiérarchie DOM
-  let postEl = null;
-  if (POST_SEL_FLAT) {
-    try { postEl = e.target.closest(POST_SEL_FLAT); } catch (_) {}
-  }
+  const postEl = findMarkedPost(e.target);
 
-  if (postEl && postEl.dataset.vigiaOk === '1') {
-    // Cursor sur un post détecté → afficher le bouton
+  if (postEl) {
     showFloat(postEl, postEl.dataset.vigiaCtx);
-  } else if (!postEl) {
-    // Cursor hors de tout post → planifier la disparition
+  } else {
     scheduleHide();
   }
 }, { passive: true });
