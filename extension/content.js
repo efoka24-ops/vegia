@@ -15,16 +15,12 @@ const SITE = (() => {
   return null;
 })();
 
-// ── Sélecteurs de conteneur de post ───────────────────────────
+if (!SITE) { /* site non supporté — arrêt silencieux */ }
+
+// ── Sélecteurs de conteneurs de post ──────────────────────────
 
 const POST_SELECTORS = {
-  facebook:  [
-    'div[role="article"]',
-    'div[data-pagelet^="FeedUnit"]',
-    'div[aria-posinset]',
-    'div.userContentWrapper',
-    'div._5pcr',
-  ],
+  facebook:  ['div[role="article"]', 'div[data-pagelet^="FeedUnit"]', 'div[aria-posinset]'], // userContentWrapper et _5pcr sont obsolètes
   twitter:   ['article[data-testid="tweet"]', 'article'],
   whatsapp:  ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
   linkedin:  ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
@@ -44,10 +40,7 @@ const CTX_LABELS = {
 };
 
 const CTX_MODULE = {
-  video:   'VÉRIF-MÉDIA',
-  text:    'VÉRIF-INFO',
-  link:    'VÉRIF-LIEN',
-  account: 'VÉRIF-COMPTE',
+  video: 'VÉRIF-MÉDIA', text: 'VÉRIF-INFO', link: 'VÉRIF-LIEN', account: 'VÉRIF-COMPTE',
 };
 
 const CTX_TO_MOD = {
@@ -56,115 +49,8 @@ const CTX_TO_MOD = {
 
 const SHIELD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff" fill-opacity=".9"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-// ── Floating CTA (UN seul élément fixe, zéro injection dans les posts) ─
-
-let FLOAT;
-try {
-  FLOAT = document.createElement('div');
-  FLOAT.className = 'vigia-float';
-  (document.body || document.documentElement).appendChild(FLOAT);
-} catch (_) {
-  FLOAT = document.createElement('div'); // orphelin — évite les crashs
-}
-
-let _post      = null;   // post actuellement survolé
-let _hasResult = false;  // un résultat est affiché → ne pas remplacer
-let _hideT     = null;
-
-function showFloat(postEl, ctx) {
-  if (_post === postEl && FLOAT.classList.contains('vigia-float--on')) return; // déjà affiché pour ce post
-
-  clearTimeout(_hideT);
-  _post = postEl;
-
-  positionFloat(postEl);
-  renderIdleBtn(postEl, ctx);
-  FLOAT.classList.add('vigia-float--on');
-}
-
-function positionFloat(postEl) {
-  const r = postEl.getBoundingClientRect();
-  const W = 300;
-  const left = Math.max(8, Math.min(
-    r.left + (r.width - W) / 2,
-    window.innerWidth - W - 8
-  ));
-  // Positionner en bas du post, visible dans le viewport
-  const top = Math.max(8, Math.min(
-    r.bottom - 52,
-    window.innerHeight - 60
-  ));
-  FLOAT.style.left  = left + 'px';
-  FLOAT.style.top   = top  + 'px';
-  FLOAT.style.width = W    + 'px';
-}
-
-function renderIdleBtn(postEl, ctx) {
-  FLOAT.innerHTML = '';
-  const btn = document.createElement('button');
-  btn.className = 'vigia-float-btn';
-  btn.innerHTML = `${SHIELD_SVG}<span>${CTX_LABELS[ctx]}</span>`;
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    e.preventDefault();
-    _hasResult = true;
-    triggerAnalysis(postEl, ctx, FLOAT);
-  });
-  FLOAT.appendChild(btn);
-}
-
-function scheduleHide() {
-  if (_hasResult) return; // ne pas cacher pendant qu'un résultat est affiché
-  clearTimeout(_hideT);
-  _hideT = setTimeout(() => {
-    FLOAT.classList.remove('vigia-float--on');
-    _post = null;
-  }, 350);
-}
-
-// Mise à jour de la position au scroll
-window.addEventListener('scroll', () => {
-  if (_post && FLOAT.classList.contains('vigia-float--on') && !_hasResult) {
-    positionFloat(_post);
-  }
-}, { passive: true });
-
-// ── Event delegation : mouseover sur document (robuste face aux overlays) ─
-// Utiliser mouseover (bubblement) + closest() plutôt que mouseenter direct.
-// On itère chaque sélecteur séparément pour trouver l'ancêtre MARQUÉ le plus
-// proche, évitant que closest(csv) ne remonte vers un élément non marqué.
-
-function findMarkedPost(target) {
-  const selectors = POST_SELECTORS[SITE] || [];
-  for (const sel of selectors) {
-    try {
-      const el = target.closest(sel);
-      if (el && el.dataset.vigiaOk === '1') return el;
-    } catch (_) {}
-  }
-  return null;
-}
-
-document.addEventListener('mouseover', e => {
-  // Hover sur le floating panel → garder visible
-  if (FLOAT && FLOAT.isConnected && FLOAT.contains(e.target)) {
-    clearTimeout(_hideT);
-    return;
-  }
-
-  // Un résultat est affiché → ne pas perturber
-  if (_hasResult) return;
-
-  const postEl = findMarkedPost(e.target);
-
-  if (postEl) {
-    showFloat(postEl, postEl.dataset.vigiaCtx);
-  } else {
-    scheduleHide();
-  }
-}, { passive: true });
-
-// ── Marquer les posts et stocker leur contexte ─────────────────
+// ── Détection du type de contenu ──────────────────────────────
+// Jamais null : tout post visible reçoit au minimum 'text'
 
 function detectContext(postEl) {
   if (postEl.querySelector('video')) return 'video';
@@ -182,18 +68,131 @@ function detectContext(postEl) {
     'span[class*="text"]', 'div[class*="text-content"]',
     'div[data-e2e="browse-video-desc"]',
   ].join(','));
-  if (textEl?.innerText?.trim().length > 20) return 'text';
+  if (textEl?.innerText?.trim().length > 10) return 'text';
 
-  // Fallback : texte brut de l'élément entier
-  const raw = postEl.innerText?.trim();
-  if (raw && raw.length > 30) return 'text';
+  // Fallback : n'importe quel texte visible dans le post
+  const raw = (postEl.innerText || '').trim();
+  if (raw.length > 10) return 'text';
 
+  return 'text'; // toujours afficher le bouton sur un conteneur de post
+}
+
+// ── Floating CTA (un seul élément fixe, zéro injection dans les posts) ─
+
+let FLOAT;
+try {
+  FLOAT = document.createElement('div');
+  FLOAT.className = 'vigia-float';
+  (document.body || document.documentElement).appendChild(FLOAT);
+} catch (_) {
+  FLOAT = document.createElement('div');
+}
+
+let _post      = null;
+let _hasResult = false;
+let _hideT     = null;
+let _mouseX    = 0;
+let _mouseY    = 0;
+
+// Suivre la position du curseur pour positionner le bouton près de lui
+document.addEventListener('mousemove', e => {
+  _mouseX = e.clientX;
+  _mouseY = e.clientY;
+}, { passive: true });
+
+function showFloat(postEl, ctx) {
+  if (_post === postEl && FLOAT.classList.contains('vigia-float--on')) return;
+
+  clearTimeout(_hideT);
+  _post = postEl;
+
+  // Positionner près du curseur (toujours visible dans le viewport)
+  const W = 300;
+  const x = Math.max(8, Math.min(_mouseX - W / 2, window.innerWidth - W - 8));
+  const y = Math.min(_mouseY + 18, window.innerHeight - 64);
+
+  FLOAT.style.left  = x + 'px';
+  FLOAT.style.top   = y + 'px';
+  FLOAT.style.width = W + 'px';
+
+  if (!_hasResult) renderIdleBtn(postEl, ctx);
+  FLOAT.classList.add('vigia-float--on');
+}
+
+function renderIdleBtn(postEl, ctx) {
+  FLOAT.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.className = 'vigia-float-btn';
+  btn.innerHTML = `${SHIELD_SVG}<span>${CTX_LABELS[ctx] || CTX_LABELS.text}</span>`;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    _hasResult = true;
+    triggerAnalysis(postEl, ctx, FLOAT);
+  });
+  FLOAT.appendChild(btn);
+}
+
+function scheduleHide() {
+  if (_hasResult) return;
+  clearTimeout(_hideT);
+  _hideT = setTimeout(() => {
+    FLOAT.classList.remove('vigia-float--on');
+    _post = null;
+  }, 350);
+}
+
+FLOAT.addEventListener('mouseenter', () => clearTimeout(_hideT));
+FLOAT.addEventListener('mouseleave', scheduleHide);
+
+// ── Détection paresseuse au survol ────────────────────────────
+// On ne marque jamais skip définitivement. Chaque survol réessaie
+// de détecter le contexte si non encore mis en cache.
+
+function findPostUnderCursor(target) {
+  if (!SITE) return null;
+  const selectors = POST_SELECTORS[SITE] || [];
+  for (const sel of selectors) {
+    try {
+      const el = target.closest(sel);
+      if (!el) continue;
+
+      // Contexte déjà mis en cache
+      if (el.dataset.vigiaCtx) return el;
+
+      // Détection à la volée (lazy) — contenu peut avoir chargé depuis la dernière fois
+      const ctx = detectContext(el);
+      if (ctx) {
+        el.dataset.vigiaCtx = ctx;
+        return el;
+      }
+    } catch (_) {}
+  }
   return null;
 }
 
-function markPosts() {
-  if (!SITE || !POST_SEL_FLAT) return;
+// ── Event delegation ──────────────────────────────────────────
 
+document.addEventListener('mouseover', e => {
+  if (!SITE) return;
+  if (FLOAT && FLOAT.isConnected && FLOAT.contains(e.target)) {
+    clearTimeout(_hideT);
+    return;
+  }
+  if (_hasResult) return;
+
+  const postEl = findPostUnderCursor(e.target);
+  if (postEl) {
+    showFloat(postEl, postEl.dataset.vigiaCtx);
+  } else {
+    scheduleHide();
+  }
+}, { passive: true });
+
+// ── Pré-marquer les posts au chargement (accélère le premier survol) ─
+
+function markPosts() {
+  if (!SITE) return;
   const selectors = POST_SELECTORS[SITE] || [];
   let posts = [];
   for (const sel of selectors) {
@@ -202,13 +201,10 @@ function markPosts() {
       if (els.length) { posts = els; break; }
     } catch (_) {}
   }
-
-  posts.slice(0, 40).forEach(postEl => {
-    if (postEl.dataset.vigiaOk) return;
-    const ctx = detectContext(postEl);
-    if (!ctx) { postEl.dataset.vigiaOk = 'skip'; return; }
-    postEl.dataset.vigiaOk  = '1';
-    postEl.dataset.vigiaCtx = ctx;
+  posts.slice(0, 40).forEach(el => {
+    if (el.dataset.vigiaCtx) return; // déjà marqué
+    const ctx = detectContext(el);
+    if (ctx) el.dataset.vigiaCtx = ctx;
   });
 }
 
@@ -237,10 +233,10 @@ function getPageSummary() {
     'a[href*="linktr.ee"]',
   ].join(',')));
 
-  // Nom de profil — uniquement sur les pages de profil (pas le feed général)
+  // Profil : uniquement sur les pages de profil (pas le feed)
   const slug = location.pathname.replace(/^\//, '').split('/')[0].split('?')[0];
-  const isProfilePage = slug.length > 2
-    && !['feed', 'watch', 'groups', 'events', 'marketplace', 'notifications', 'messages', 'home', ''].includes(slug);
+  const feedSlugs = ['feed','watch','groups','events','marketplace','notifications','messages','home',''];
+  const isProfilePage = slug.length > 2 && !feedSlugs.includes(slug);
 
   const profileName = isProfilePage
     ? ([
@@ -260,7 +256,7 @@ function getPageSummary() {
   };
 }
 
-// ── Analyse d'un post ──────────────────────────────────────────
+// ── Analyse au clic ────────────────────────────────────────────
 
 function triggerAnalysis(postEl, context, cta) {
   const payload = buildPayload(postEl, context);
@@ -286,14 +282,8 @@ function buildPayload(postEl, context) {
   }
   if (context === 'link') {
     const a = postEl.querySelector('a[href*="l.facebook.com/l.php"], a[href*="bit.ly"], a[href*="t.co"]');
-    if (!a) return null;
-    return { type: 'url', content: { url: a.href }, source: SITE, cacheKey: `url:${a.href}` };
-  }
-  if (context === 'text') {
-    const textEl = postEl.querySelector('div[dir="auto"], [data-testid="tweetText"], .break-words, p') || postEl;
-    const text = textEl.innerText?.trim();
-    if (!text || text.length < 15) return null;
-    return { type: 'text', content: { text: text.slice(0, 1000) }, source: SITE, cacheKey: `txt:${simpleHash(text)}` };
+    const url = a?.href || location.href;
+    return { type: 'url', content: { url }, source: SITE, cacheKey: `url:${simpleHash(url)}` };
   }
   if (context === 'account') {
     const name = postEl.querySelector('h1, h2')?.innerText?.trim()
@@ -301,7 +291,11 @@ function buildPayload(postEl, context) {
       || location.pathname.replace(/^\//, '').split('/')[0];
     return { type: 'account', content: { profile_name: name, profile_image_url: '' }, source: SITE, cacheKey: `acc:${simpleHash(name)}` };
   }
-  return null;
+  // text (défaut)
+  const textEl = postEl.querySelector('div[dir="auto"], [data-testid="tweetText"], .break-words, p') || postEl;
+  const text = (textEl.innerText || postEl.innerText || '').trim().slice(0, 1000);
+  if (!text) return null;
+  return { type: 'text', content: { text }, source: SITE, cacheKey: `txt:${simpleHash(text)}` };
 }
 
 // ── Notification du popup ──────────────────────────────────────
@@ -310,7 +304,6 @@ function notifyPopup(context, result) {
   const mod   = CTX_TO_MOD[context];
   const level = result.level || 'error';
   if (!mod || level === 'error') return;
-
   const mods    = result.modules || {};
   const modData = Object.values(mods)[0];
   const score   = modData?.score != null ? Math.round(modData.score * 100) : null;
@@ -318,17 +311,13 @@ function notifyPopup(context, result) {
   const badge   = level === 'red'    ? (score != null ? `⚠ ${score}%` : '⚠ alerte')
                 : level === 'orange' ? (score != null ? `⚠ ${score}%` : '⚠ douteux')
                 : '✓ RAS';
-
   try { chrome.runtime.sendMessage({ type: 'SCAN_RESULT', mod, result: { level, badge, label } }); } catch (_) {}
 }
 
 // ── États du floating panel ────────────────────────────────────
 
 function setCtaLoading(cta) {
-  cta.innerHTML = `
-    <div class="vigia-loading">
-      <span class="vigia-spinner"></span>Analyse en cours…
-    </div>`;
+  cta.innerHTML = `<div class="vigia-loading"><span class="vigia-spinner"></span>Analyse en cours…</div>`;
 }
 
 function setCtaError(cta, msg) {
@@ -366,7 +355,6 @@ function renderResult(cta, result, context) {
     _post = null;
     FLOAT.classList.remove('vigia-float--on');
   });
-
   cta.querySelector('.vigia-result-report')?.addEventListener('click', e => {
     e.stopPropagation();
     chrome.runtime.sendMessage({ type: 'REPORT', payload: { result, url: location.href } });
@@ -374,7 +362,6 @@ function renderResult(cta, result, context) {
     e.target.disabled = true;
   });
 
-  // Auto-fermeture après 12 secondes
   setTimeout(() => {
     if (_hasResult) {
       _hasResult = false;
@@ -398,7 +385,7 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   }
 });
 
-// ── MutationObserver + démarrage ──────────────────────────────
+// ── Démarrage + MutationObserver ──────────────────────────────
 
 if (SITE) {
   if (document.readyState === 'loading') {
@@ -407,10 +394,10 @@ if (SITE) {
     try { markPosts(); } catch (_) {}
   }
 
-  let markTimer = null;
+  let _markTimer = null;
   const mo = new MutationObserver(() => {
-    clearTimeout(markTimer);
-    markTimer = setTimeout(() => { try { markPosts(); } catch (_) {} }, 600);
+    clearTimeout(_markTimer);
+    _markTimer = setTimeout(() => { try { markPosts(); } catch (_) {} }, 600);
   });
   mo.observe(document.body, { childList: true, subtree: true });
 }
@@ -419,12 +406,10 @@ if (SITE) {
 
 function simpleHash(str) {
   let h = 0;
-  for (let i = 0; i < Math.min(str.length, 200); i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  }
+  for (let i = 0; i < Math.min(str.length, 200); i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
   return h.toString(36);
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
