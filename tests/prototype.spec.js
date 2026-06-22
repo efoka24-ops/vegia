@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 
-const baseURL = 'file://' + path.resolve(__dirname, '../prototype/VigIA - Prototype extension.dc.html').replace(/\\/g, '/');
+const baseURL = 'file://' + path.resolve(__dirname, '../prototype/prototype-embed.html').replace(/\\/g, '/');
 
 test.describe('VigIA Prototype — Facebook', () => {
 
