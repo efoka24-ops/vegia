@@ -36,6 +36,9 @@ jobs:
           # Copier et renommer le prototype → index.html
           cp "prototype/VigIA - Prototype extension.dc.html" _site/prototype/index.html
 
+          # Copier aussi le prototype embarquable référencé par l'iframe de landing.html
+          cp "prototype/VigIA - Prototype extension.dc.html" _site/prototype/prototype-embed.html
+
           # Copier les icônes SVG pour le prototype (les PNG ne sont pas nécessaires côté web)
           cp extension/icons/vigia.svg _site/prototype/icons/vigia.svg
 
