@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.vercel/
+
+# Ré-inclure le ZIP de l'extension (ignoré globalement par le .gitignore racine)
+!public/vigia-extension.zip
