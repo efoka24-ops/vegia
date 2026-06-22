@@ -315,9 +315,9 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Route racine → redirect vers landing page (302 pour que les URLs relatives fonctionnent)
+  // Route racine → prototype interactif (la landing est désormais l'app React dans landing/)
   if (urlPath === '/') {
-    res.writeHead(302, { Location: '/prototype/landing.html' });
+    res.writeHead(302, { Location: '/prototype/prototype-embed.html' });
     res.end();
     return;
   }
@@ -361,8 +361,7 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://localhost:${PORT}`;
   console.log('\n  VigIA dev server\n');
-  console.log(`  ○  Landing page   →  ${url}`);
-  console.log(`  ○  Prototype      →  ${url}/prototype/index.html`);
+  console.log(`  ○  Prototype      →  ${url}/prototype/prototype-embed.html`);
   console.log(`  ○  Téléchargement →  ${url}/vigia-extension.zip`);
   console.log('\n  Ctrl+C pour arrêter\n');
   exec(`start "" "${url}"`);
