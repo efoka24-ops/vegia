@@ -101,7 +101,7 @@ export default function App() {
           </p>
         </div>
         <div className="proto-wrap">
-          <iframe src="/prototype/index.html" title="VigIA — Prototype interactif" loading="lazy" />
+          <iframe src="/prototype/" title="VigIA — Prototype interactif" loading="lazy" />
           <div className="proto-overlay-label">↑ Prototype interactif complet — Facebook &amp; LinkedIn</div>
         </div>
       </section>
