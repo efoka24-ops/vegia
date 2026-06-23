@@ -25,7 +25,21 @@ def get_db_connection():
 
 
 async def init_db():
-    """Crée les tables si elles n'existent pas (dev/MVP)."""
+    """Crée les tables si elles n'existent pas (dev/MVP).
+
+    Résilient : si la base est injoignable au démarrage (PostgreSQL non encore
+    ajouté), on journalise un avertissement et l'application démarre quand même.
+    /health et /verify (heuristique, jeton public) restent fonctionnels ; les
+    fonctions dépendant de la base se réactivent dès qu'elle est disponible.
+    """
+    try:
+        _create_tables()
+    except Exception as e:
+        print(f"[VigIA] ⚠ Base de données indisponible au démarrage : {e}. "
+              f"L'API démarre en mode dégradé (sans persistance).")
+
+
+def _create_tables():
     with engine.begin() as conn:
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS official_accounts (
