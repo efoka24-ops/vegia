@@ -4,6 +4,10 @@ import Faq from './components/Faq.jsx';
 import ApiDocs from './components/ApiDocs.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
 
+// URL de téléchargement de l'app mobile. Remplacer '#' par l'URL de l'APK
+// (ou le lien Play Store) une fois le build EAS effectué (eas build -p android).
+const MOBILE_APK_URL = '#';
+
 const MODULES = [
   {
     icon: '🎬',
@@ -206,6 +210,31 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* MOBILE */}
+      <section id="mobile" style={{ padding: '0 24px 80px' }}>
+        <div className="install-wrap" style={{ textAlign: 'center' }}>
+          <div className="eyebrow">Bientôt sur mobile</div>
+          <div className="section-title" style={{ fontSize: 'clamp(24px,3vw,36px)', marginBottom: 10 }}>
+            VigIA dans votre poche <span>📱</span>
+          </div>
+          <p style={{ color: '#7ab89a', fontSize: 15, maxWidth: 560, margin: '0 auto 28px' }}>
+            Vérifiez liens, textes et comptes en déplacement. Partagez un message suspect
+            depuis WhatsApp ou Facebook directement vers VigIA pour obtenir un verdict.
+          </p>
+          <div className="hero-actions">
+            <a href={MOBILE_APK_URL} className="btn btn-primary btn-lg"
+               {...(MOBILE_APK_URL === '#' ? { onClick: (e) => e.preventDefault() } : { download: true })}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              {MOBILE_APK_URL === '#' ? 'Android — bientôt disponible' : 'Télécharger pour Android'}
+            </a>
+            <span className="btn btn-ghost btn-lg" style={{ cursor: 'default' }}>🍎 iOS — bientôt</span>
+          </div>
+          <p style={{ fontSize: 12, color: '#4a7c5f', marginTop: 16 }}>
+            Version bêta · gratuite · même moteur d'analyse que l'extension
+          </p>
         </div>
       </section>
 
