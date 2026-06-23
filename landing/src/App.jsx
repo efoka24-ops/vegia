@@ -4,6 +4,8 @@ import Faq from './components/Faq.jsx';
 import ApiDocs from './components/ApiDocs.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
 import ThreatMap from './components/ThreatMap.jsx';
+import Education from './components/Education.jsx';
+import VerifiedForm from './components/VerifiedForm.jsx';
 
 // APK servi directement depuis le domaine (Vercel le télécharge depuis la
 // release "mobile-latest" au moment du build → fichier statique /vigia.apk).
@@ -61,6 +63,8 @@ export default function App() {
   }, []);
   const showApi = route === '#api';
   const showThreats = route === '#menaces';
+  const showEdu = route === '#apprendre';
+  const showVerified = route === '#verified';
 
   if (route === '#admin') return <AdminPanel />;
 
@@ -77,13 +81,14 @@ export default function App() {
           <a href="#modules">Modules</a>
           <a href="#installer">Installer</a>
           <a href="#menaces">Menaces</a>
+          <a href="#apprendre">Apprendre</a>
           <a href="#api">API</a>
           <a href="#faq">FAQ</a>
           <a href="#installer" className="nav-cta">Télécharger →</a>
         </div>
       </nav>
 
-      {showApi ? <ApiDocs /> : showThreats ? <ThreatMap /> : (<>
+      {showApi ? <ApiDocs /> : showThreats ? <ThreatMap /> : showEdu ? <Education /> : showVerified ? <VerifiedForm /> : (<>
       {/* HERO */}
       <section className="hero">
         <div className="hero-glow" />
@@ -266,7 +271,11 @@ export default function App() {
           <span style={{ color: '#4a7c5f', fontWeight: 700 }}>VigIA</span>
         </a>
         <span>VigIA v0.1.0 · Cameroun · Données locales uniquement</span>
-        <a href="mailto:infos@trugroup.com">Contact</a>
+        <span style={{ display: 'flex', gap: 14 }}>
+          <a href="#verified">VigIA Verified</a>
+          <a href="#apprendre">Apprendre</a>
+          <a href="mailto:infos@trugroup.com">Contact</a>
+        </span>
       </footer>
     </>
   );
