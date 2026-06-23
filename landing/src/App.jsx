@@ -3,6 +3,7 @@ import Shield from './components/Shield.jsx';
 import Faq from './components/Faq.jsx';
 import ApiDocs from './components/ApiDocs.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
+import ThreatMap from './components/ThreatMap.jsx';
 
 // APK servi directement depuis le domaine (Vercel le télécharge depuis la
 // release "mobile-latest" au moment du build → fichier statique /vigia.apk).
@@ -59,6 +60,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   const showApi = route === '#api';
+  const showThreats = route === '#menaces';
 
   if (route === '#admin') return <AdminPanel />;
 
@@ -74,13 +76,14 @@ export default function App() {
           <a href="#demo">Démo</a>
           <a href="#modules">Modules</a>
           <a href="#installer">Installer</a>
+          <a href="#menaces">Menaces</a>
           <a href="#api">API</a>
           <a href="#faq">FAQ</a>
           <a href="#installer" className="nav-cta">Télécharger →</a>
         </div>
       </nav>
 
-      {showApi ? <ApiDocs /> : (<>
+      {showApi ? <ApiDocs /> : showThreats ? <ThreatMap /> : (<>
       {/* HERO */}
       <section className="hero">
         <div className="hero-glow" />

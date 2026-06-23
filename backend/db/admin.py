@@ -197,9 +197,11 @@ def get_threat_map() -> dict:
                 "SELECT COUNT(*) FROM api_usage WHERE endpoint='verify' AND level='red'"
             )).scalar() or 0
             out["by_city"] = [
-                {"city": r[0] or "Inconnu", "country": r[1], "code": r[2], "alerts": r[3]}
+                {"city": r[0] or "Inconnu", "country": r[1], "code": r[2],
+                 "lat": float(r[3]) if r[3] is not None else None,
+                 "lon": float(r[4]) if r[4] is not None else None, "alerts": r[5]}
                 for r in conn.execute(text(
-                    "SELECT city, country, country_code, COUNT(*) c FROM api_usage "
+                    "SELECT city, country, country_code, AVG(lat), AVG(lon), COUNT(*) c FROM api_usage "
                     "WHERE endpoint='verify' AND level='red' GROUP BY city, country, country_code "
                     "ORDER BY c DESC LIMIT 50"
                 )).fetchall()

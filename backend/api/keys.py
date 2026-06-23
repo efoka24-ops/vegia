@@ -132,14 +132,15 @@ def record_event(token: str, endpoint: str, ip: str | None = None,
             conn.execute(
                 text(
                     "INSERT INTO api_usage "
-                    "(api_key, endpoint, client_id, ip, country, country_code, city, source, ctype, level, user_agent) "
-                    "VALUES (:k, :e, :cid, :ip, :country, :cc, :city, :src, :ct, :lvl, :ua)"
+                    "(api_key, endpoint, client_id, ip, country, country_code, city, source, ctype, level, user_agent, lat, lon) "
+                    "VALUES (:k, :e, :cid, :ip, :country, :cc, :city, :src, :ct, :lvl, :ua, :lat, :lon)"
                 ),
                 {
                     "k": token, "e": endpoint, "cid": client_id, "ip": ip,
                     "country": geo.get("country"), "cc": geo.get("country_code"),
                     "city": geo.get("city"), "src": source, "ct": ctype, "lvl": level,
                     "ua": (user_agent or "")[:300],
+                    "lat": geo.get("lat"), "lon": geo.get("lon"),
                 },
             )
             conn.commit()

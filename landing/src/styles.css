@@ -287,6 +287,21 @@ footer a:hover { color: #7ab89a; }
 .admin-bar-num { width: 40px; text-align: right; color: #7ab89a; font-weight: 700; }
 @media (max-width: 780px) { .admin-grid2 { grid-template-columns: 1fr; } }
 
+/* ── CARTE DES MENACES ── */
+.threat-map {
+  width: 100%; height: 460px; border-radius: 16px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1); background: #0c1813;
+}
+.leaflet-popup-content { font-family: var(--font); }
+.threat-feed { display: flex; flex-direction: column; gap: 2px; max-height: 420px; overflow-y: auto; }
+.threat-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  background: rgba(255,255,255,0.03); border-radius: 9px; font-size: 13px; color: #c9d6cf;
+}
+.threat-dot { width: 8px; height: 8px; border-radius: 50%; background: #f87171; flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(248,113,113,.6); animation: pulse 2s ease infinite; }
+.threat-time { margin-left: auto; color: #4a7c5f; font-size: 11px; }
+
 @media (max-width: 780px) {
   nav { padding: 14px 20px; }
   .nav-links a:not(.nav-cta) { display: none; }

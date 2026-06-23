@@ -34,7 +34,7 @@ def resolve_geo(ip: Optional[str]) -> dict:
         with httpx.Client(timeout=4.0) as client:
             resp = client.get(
                 f"http://ip-api.com/json/{ip}",
-                params={"fields": "status,country,countryCode,city"},
+                params={"fields": "status,country,countryCode,city,lat,lon"},
             )
         data = resp.json()
         if data.get("status") == "success":
@@ -42,6 +42,8 @@ def resolve_geo(ip: Optional[str]) -> dict:
                 "country": data.get("country"),
                 "country_code": data.get("countryCode"),
                 "city": data.get("city"),
+                "lat": data.get("lat"),
+                "lon": data.get("lon"),
             }
     except Exception:
         geo = {}

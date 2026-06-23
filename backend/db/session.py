@@ -101,6 +101,7 @@ def _create_tables():
             ("country_code", "TEXT"), ("city", "TEXT"),
             ("source", "TEXT"), ("ctype", "TEXT"), ("level", "TEXT"),
             ("user_agent", "TEXT"),
+            ("lat", "DOUBLE PRECISION"), ("lon", "DOUBLE PRECISION"),
         ]:
             conn.execute(text(f"ALTER TABLE api_usage ADD COLUMN IF NOT EXISTS {col} {typ}"))
 
