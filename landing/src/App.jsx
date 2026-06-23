@@ -4,9 +4,9 @@ import Faq from './components/Faq.jsx';
 import ApiDocs from './components/ApiDocs.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
 
-// URL de téléchargement de l'app mobile. Remplacer '#' par l'URL de l'APK
-// (ou le lien Play Store) une fois le build EAS effectué (eas build -p android).
-const MOBILE_APK_URL = '#';
+// APK publié automatiquement par le workflow GitHub Actions "Build APK Android"
+// sur la release stable "mobile-latest". Disponible après le 1er run du workflow.
+const MOBILE_APK_URL = 'https://github.com/efoka24-ops/vegia/releases/download/mobile-latest/vigia.apk';
 
 const MODULES = [
   {

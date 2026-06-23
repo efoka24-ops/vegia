@@ -1,0 +1,72 @@
+name: Build APK Android (VigIA Mobile)
+
+# Build un APK installable de l'app mobile et le publie sur la release "mobile-latest".
+# Aucun compte Expo requis : expo prebuild + Gradle assembleRelease (signé avec une clé générée).
+on:
+  workflow_dispatch:
+  push:
+    branches: [preprod, main]
+    paths:
+      - 'vigia-mobile/**'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vigia-mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Expo prebuild (génère le projet android natif)
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Générer une clé de signature
+        run: |
+          keytool -genkeypair -v -keystore release.keystore \
+            -alias vigia -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass vigia12345 -keypass vigia12345 \
+            -dname "CN=VigIA, OU=VigIA Ext, O=VigIA Ext, L=Yaounde, C=CM"
+
+      - name: Build APK release (signé)
+        working-directory: vigia-mobile/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/vigia-mobile/release.keystore \
+            -Pandroid.injected.signing.store.password=vigia12345 \
+            -Pandroid.injected.signing.key.alias=vigia \
+            -Pandroid.injected.signing.key.password=vigia12345
+
+      - name: Renommer l'APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk vigia.apk
+
+      - name: Publier la release "mobile-latest"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mobile-latest
+          name: VigIA Mobile (dernier build)
+          body: |
+            APK Android de VigIA Mobile (bêta).
+            Installe-le sur Android (autorise les "sources inconnues").
+            Build automatique — ne pas utiliser pour le Play Store (clé de test).
+          files: vigia-mobile/vigia.apk
