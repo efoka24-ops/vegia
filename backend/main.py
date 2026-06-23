@@ -1,3 +1,4 @@
+# Backend FastAPI VigIA — déployé via le Dockerfile racine (build Python forcé).
 import os
 from contextlib import asynccontextmanager
 

@@ -1,0 +1,16 @@
+node_modules
+landing
+docs
+prototype
+mock-server
+chrome-profile
+playwright-report
+test-results
+tests
+extension
+scripts
+infra
+.git
+.github
+*.zip
+*.md

@@ -1,0 +1,11 @@
+# Config Railway as-code (racine) — impose le builder Docker pour le backend Python.
+# Prend le pas sur la détection automatique (Railpack/Node).
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/v1/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
