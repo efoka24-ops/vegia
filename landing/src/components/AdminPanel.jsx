@@ -1,0 +1,242 @@
+import { useState, useEffect, useCallback } from 'react';
+
+const API_BASE = 'https://vegia-production.up.railway.app/api/v1';
+const TOKEN_KEY = 'vigia_admin_token';
+
+export default function AdminPanel() {
+  const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) || '');
+  const [authed, setAuthed] = useState(false);
+  const [tab, setTab] = useState('stats');
+  const [error, setError] = useState('');
+
+  const api = useCallback(async (path, opts = {}) => {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    });
+    if (res.status === 401 || res.status === 403) { throw new Error('Token administrateur invalide'); }
+    if (!res.ok) throw new Error(`Erreur ${res.status}`);
+    return res.status === 204 ? null : res.json();
+  }, [token]);
+
+  const login = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await api('/admin/stats');
+      sessionStorage.setItem(TOKEN_KEY, token);
+      setAuthed(true);
+    } catch (err) {
+      setError(err.message + ' (le backend est-il en ligne ?)');
+    }
+  };
+
+  const logout = () => { sessionStorage.removeItem(TOKEN_KEY); setToken(''); setAuthed(false); };
+
+  if (!authed) {
+    return (
+      <main className="admin">
+        <form className="admin-login" onSubmit={login}>
+          <h1>Administration VigIA</h1>
+          <p>Entrez le jeton administrateur (<code>ADMIN_TOKEN</code>).</p>
+          <input type="password" placeholder="ADMIN_TOKEN" value={token}
+            onChange={e => setToken(e.target.value)} autoFocus />
+          <button className="btn btn-primary btn-md" type="submit">Se connecter</button>
+          {error && <div className="admin-error">{error}</div>}
+          <a href="#" className="admin-back">← Retour au site</a>
+        </form>
+      </main>
+    );
+  }
+
+  const TABS = [
+    ['stats', 'Tableau de bord'],
+    ['keys', 'Clés API'],
+    ['blacklist', 'Liste noire'],
+    ['accounts', 'Comptes officiels'],
+    ['reports', 'Signalements'],
+  ];
+
+  return (
+    <main className="admin">
+      <div className="admin-bar">
+        <strong>Administration VigIA</strong>
+        <div className="admin-tabs">
+          {TABS.map(([id, label]) => (
+            <button key={id} className={`admin-tab${tab === id ? ' on' : ''}`} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
+        <button className="admin-logout" onClick={logout}>Déconnexion</button>
+      </div>
+      <div className="admin-body">
+        {tab === 'stats' && <Stats api={api} />}
+        {tab === 'keys' && <Keys api={api} />}
+        {tab === 'blacklist' && <Blacklist api={api} />}
+        {tab === 'accounts' && <Accounts api={api} />}
+        {tab === 'reports' && <Reports api={api} />}
+      </div>
+    </main>
+  );
+}
+
+function useLoad(fn, deps = []) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState('');
+  const reload = useCallback(() => {
+    fn().then(setData).catch(e => setErr(e.message));
+  }, deps); // eslint-disable-line
+  useEffect(() => { reload(); }, [reload]);
+  return { data, err, reload, setErr };
+}
+
+function Stats({ api }) {
+  const { data, err } = useLoad(() => api('/admin/stats'));
+  if (err) return <div className="admin-error">{err}</div>;
+  if (!data) return <p>Chargement…</p>;
+  const cards = [
+    ['Vérifications (30 j)', data.verifications_30d, '#4ade80'],
+    ['Clés actives', data.active_keys, '#F2B705'],
+    ['Signalements', data.reports, '#f87171'],
+    ['Liste noire', data.blacklist, '#60a5fa'],
+    ['Comptes officiels', data.official_accounts, '#a78bfa'],
+  ];
+  return (
+    <div className="admin-cards">
+      {cards.map(([l, v, c]) => (
+        <div className="admin-card" key={l}>
+          <div className="admin-card-val" style={{ color: c }}>{v}</div>
+          <div className="admin-card-lbl">{l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Keys({ api }) {
+  const { data, err, reload } = useLoad(() => api('/admin/keys'));
+  const [label, setLabel] = useState('');
+  const [quota, setQuota] = useState('');
+  const [created, setCreated] = useState(null);
+
+  const create = async (e) => {
+    e.preventDefault();
+    const body = { label, tier: 'pro', monthly_quota: quota ? Number(quota) : null };
+    const res = await api('/admin/keys', { method: 'POST', body: JSON.stringify(body) });
+    setCreated(res.key); setLabel(''); setQuota(''); reload();
+  };
+  const revoke = async (key) => { await api(`/admin/keys/${key}`, { method: 'DELETE' }); reload(); };
+
+  return (
+    <div>
+      <form className="admin-form" onSubmit={create}>
+        <input placeholder="Nom du partenaire" value={label} onChange={e => setLabel(e.target.value)} required />
+        <input placeholder="Quota mensuel (optionnel)" value={quota} onChange={e => setQuota(e.target.value)} type="number" />
+        <button className="btn btn-primary btn-md" type="submit">Créer une clé</button>
+      </form>
+      {created && <div className="admin-ok">Clé créée (copiez-la, affichée une seule fois) : <code>{created}</code></div>}
+      {err && <div className="admin-error">{err}</div>}
+      <table className="admin-table">
+        <thead><tr><th>Clé</th><th>Nom</th><th>Palier</th><th>Quota</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+          {(data?.keys || []).map((k, i) => (
+            <tr key={i}>
+              <td><code>{k.key}</code></td><td>{k.label}</td><td>{k.tier}</td>
+              <td>{k.monthly_quota ?? '∞'}</td><td>{k.active ? '✓' : '✕'}</td>
+              <td>{k.active && <button className="admin-del" onClick={() => revoke(k.key.replace('…',''))}>révoquer</button>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="api-note">Note : la révocation nécessite la clé complète ; depuis cette liste les clés sont masquées. Révoquez via l'API si besoin.</p>
+    </div>
+  );
+}
+
+function Blacklist({ api }) {
+  const { data, err, reload } = useLoad(() => api('/admin/blacklist'));
+  const [url, setUrl] = useState('');
+  const [reason, setReason] = useState('');
+  const add = async (e) => {
+    e.preventDefault();
+    await api('/admin/blacklist', { method: 'POST', body: JSON.stringify({ url, reason }) });
+    setUrl(''); setReason(''); reload();
+  };
+  const remove = async (u) => { await api(`/admin/blacklist?url=${encodeURIComponent(u)}`, { method: 'DELETE' }); reload(); };
+  return (
+    <div>
+      <form className="admin-form" onSubmit={add}>
+        <input placeholder="URL malveillante" value={url} onChange={e => setUrl(e.target.value)} required />
+        <input placeholder="Raison" value={reason} onChange={e => setReason(e.target.value)} />
+        <button className="btn btn-primary btn-md" type="submit">Ajouter</button>
+      </form>
+      {err && <div className="admin-error">{err}</div>}
+      <table className="admin-table">
+        <thead><tr><th>URL</th><th>Raison</th><th>Ajouté</th><th></th></tr></thead>
+        <tbody>
+          {(data?.entries || []).map((b) => (
+            <tr key={b.id}>
+              <td style={{ wordBreak: 'break-all' }}>{b.url}</td><td>{b.reason}</td>
+              <td>{(b.created_at || '').slice(0, 10)}</td>
+              <td><button className="admin-del" onClick={() => remove(b.url)}>suppr.</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Accounts({ api }) {
+  const { data, err, reload } = useLoad(() => api('/admin/official-accounts'));
+  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
+  const [src, setSrc] = useState('');
+  const add = async (e) => {
+    e.preventDefault();
+    await api('/admin/official-accounts', { method: 'POST', body: JSON.stringify({ name, title, source_url: src }) });
+    setName(''); setTitle(''); setSrc(''); reload();
+  };
+  const remove = async (id) => { await api(`/admin/official-accounts/${id}`, { method: 'DELETE' }); reload(); };
+  return (
+    <div>
+      <form className="admin-form" onSubmit={add}>
+        <input placeholder="Nom officiel (ex. MINPOSTEL)" value={name} onChange={e => setName(e.target.value)} required />
+        <input placeholder="Titre / institution" value={title} onChange={e => setTitle(e.target.value)} />
+        <input placeholder="URL officielle" value={src} onChange={e => setSrc(e.target.value)} />
+        <button className="btn btn-primary btn-md" type="submit">Ajouter</button>
+      </form>
+      {err && <div className="admin-error">{err}</div>}
+      <table className="admin-table">
+        <thead><tr><th>Nom</th><th>Titre</th><th>Source</th><th></th></tr></thead>
+        <tbody>
+          {(data?.accounts || []).map((a) => (
+            <tr key={a.id}>
+              <td>{a.name}</td><td>{a.title}</td>
+              <td style={{ wordBreak: 'break-all' }}>{a.source_url}</td>
+              <td><button className="admin-del" onClick={() => remove(a.id)}>suppr.</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Reports({ api }) {
+  const { data, err } = useLoad(() => api('/admin/reports'));
+  if (err) return <div className="admin-error">{err}</div>;
+  return (
+    <table className="admin-table">
+      <thead><tr><th>Date</th><th>URL signalée</th><th>IP</th></tr></thead>
+      <tbody>
+        {(data?.reports || []).map((r) => (
+          <tr key={r.id}>
+            <td>{(r.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+            <td style={{ wordBreak: 'break-all' }}>{r.content_url || '—'}</td>
+            <td>{r.reporter_ip || '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}

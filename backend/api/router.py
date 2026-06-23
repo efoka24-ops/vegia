@@ -12,13 +12,14 @@ from api.schemas import (
     VerifyRequest, VerifyResponse, BlacklistResponse,
     ReportRequest, ReportResponse,
     KeyCreateRequest, KeyCreateResponse, UsageResponse,
-    SendReportRequest,
+    SendReportRequest, BlacklistAddRequest, OfficialAccountRequest,
 )
 from modules.media import MediaModule
 from modules.info import InfoModule
 from modules.link import LinkModule
 from modules.account import AccountModule
 from db.blacklist import get_blacklist_entries, add_to_blacklist
+from db import admin as adminmgr
 from db.session import get_db_connection
 from sqlalchemy import text
 
@@ -138,6 +139,50 @@ async def list_keys():
 @router.delete("/admin/keys/{key}", dependencies=[Depends(verify_admin)])
 async def revoke_key(key: str):
     return {"revoked": keymgr.revoke_key(key)}
+
+
+# ---------- Back-office : statistiques, signalements, listes ----------
+
+@router.get("/admin/stats", dependencies=[Depends(verify_admin)])
+async def admin_stats():
+    return adminmgr.get_stats()
+
+
+@router.get("/admin/reports", dependencies=[Depends(verify_admin)])
+async def admin_reports(limit: int = 100):
+    return {"reports": adminmgr.list_reports(min(limit, 500))}
+
+
+@router.get("/admin/blacklist", dependencies=[Depends(verify_admin)])
+async def admin_blacklist():
+    return {"entries": adminmgr.list_blacklist()}
+
+
+@router.post("/admin/blacklist", dependencies=[Depends(verify_admin)])
+async def admin_blacklist_add(body: BlacklistAddRequest):
+    await add_to_blacklist(body.url, reason=body.reason or "admin", reported_by="admin")
+    return {"ok": True}
+
+
+@router.delete("/admin/blacklist", dependencies=[Depends(verify_admin)])
+async def admin_blacklist_remove(url: str):
+    return {"removed": adminmgr.remove_blacklist(url)}
+
+
+@router.get("/admin/official-accounts", dependencies=[Depends(verify_admin)])
+async def admin_official_accounts():
+    return {"accounts": adminmgr.list_official_accounts()}
+
+
+@router.post("/admin/official-accounts", dependencies=[Depends(verify_admin)])
+async def admin_official_account_add(body: OfficialAccountRequest):
+    adminmgr.add_official_account(body.name, body.title or "", body.source_url or "")
+    return {"ok": True}
+
+
+@router.delete("/admin/official-accounts/{account_id}", dependencies=[Depends(verify_admin)])
+async def admin_official_account_remove(account_id: int):
+    return {"removed": adminmgr.remove_official_account(account_id)}
 
 
 # ---------- Helpers ----------

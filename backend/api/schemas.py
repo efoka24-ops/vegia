@@ -82,3 +82,14 @@ class SendReportRequest(BaseModel):
     url:     Optional[str] = None
     date:    Optional[str] = None
     results: dict = {}
+
+
+class BlacklistAddRequest(BaseModel):
+    url:    str
+    reason: Optional[str] = None
+
+
+class OfficialAccountRequest(BaseModel):
+    name:       str
+    title:      Optional[str] = None
+    source_url: Optional[str] = None

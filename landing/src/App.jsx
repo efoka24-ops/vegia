@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Shield from './components/Shield.jsx';
 import Faq from './components/Faq.jsx';
 import ApiDocs from './components/ApiDocs.jsx';
+import AdminPanel from './components/AdminPanel.jsx';
 
 const MODULES = [
   {
@@ -53,6 +54,8 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   const showApi = route === '#api';
+
+  if (route === '#admin') return <AdminPanel />;
 
   return (
     <>
