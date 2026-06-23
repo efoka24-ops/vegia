@@ -62,7 +62,38 @@ const CTX_TO_MOD = {
 const CTX_ICON  = { video: '🎬', text: '📰', link: '🔗', account: '👤' };
 const CTX_SHORT = { video: 'Vidéo', text: 'Texte', link: 'Lien', account: 'Compte' };
 
-const SHIELD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff" fill-opacity=".9"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// ── Helpers DOM sûrs (compatibles Trusted Types : X / Instagram / LinkedIn) ──
+// Ces sites bloquent toute affectation .innerHTML depuis l'extension.
+// On construit donc tout via createElement / createElementNS / textContent.
+
+function mkEl(tag, className, text) {
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function makeShield() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', '15');
+  svg.setAttribute('height', '15');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.style.flexShrink = '0';
+  const p1 = document.createElementNS(NS, 'path');
+  p1.setAttribute('d', 'M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z');
+  p1.setAttribute('fill', '#fff');
+  p1.setAttribute('fill-opacity', '.9');
+  const p2 = document.createElementNS(NS, 'path');
+  p2.setAttribute('d', 'M8 12l3 3 5-6');
+  p2.setAttribute('stroke', '#0A5C42');
+  p2.setAttribute('stroke-width', '2.4');
+  p2.setAttribute('stroke-linecap', 'round');
+  p2.setAttribute('stroke-linejoin', 'round');
+  svg.append(p1, p2);
+  return svg;
+}
 
 // ── Détection des types de contenu vérifiables ────────────────
 // Renvoie un tableau ordonné (jamais vide) parmi : video, text, link, account.
@@ -73,6 +104,26 @@ function isProfilePage() {
   const feedSlugs = ['feed', 'watch', 'groups', 'events', 'marketplace',
                      'notifications', 'messages', 'home', 'explore', 'reels', ''];
   return slug.length > 2 && !feedSlugs.includes(slug);
+}
+
+// Récupère le nom de l'auteur/compte d'un post (multi-sites, robuste FB)
+function findAuthorName(postEl) {
+  const sels = [
+    '[data-testid="UserName"]',
+    'h1', 'h2', 'h3',
+    'strong a[role="link"]',
+    'span a[role="link"] strong',
+    'a[role="link"] strong',
+    'a[aria-label]',
+  ];
+  for (const s of sels) {
+    let e;
+    try { e = postEl.querySelector(s); } catch (_) { continue; }
+    if (!e) continue;
+    const t = ((e.innerText || e.getAttribute('aria-label') || '').trim().split('\n')[0] || '').trim();
+    if (t && t.length > 1 && t.length < 80) return t;
+  }
+  return '';
 }
 
 function detectContexts(postEl) {
@@ -97,8 +148,8 @@ function detectContexts(postEl) {
     || (postEl.innerText || '').trim().length > 10;
   if (hasText) ctxs.push('text');
 
-  // Compte : proposé sur les pages de profil, ou si le post expose un nom (h1/h2)
-  if (isProfilePage() || postEl.querySelector('h1, h2, [data-testid="UserName"]')) {
+  // Compte : proposé sur les pages de profil, ou si le post expose un auteur
+  if (isProfilePage() || findAuthorName(postEl)) {
     ctxs.push('account');
   }
 
@@ -154,15 +205,14 @@ function runCheck(postEl, ctx) {
 }
 
 function renderIdleBtn(postEl, ctxs) {
-  FLOAT.innerHTML = '';
+  FLOAT.replaceChildren();
   const list = Array.isArray(ctxs) ? ctxs : [ctxs || 'text'];
 
   // Un seul type → bouton unique (comportement d'origine)
   if (list.length === 1) {
     const ctx = list[0];
-    const btn = document.createElement('button');
-    btn.className = 'vigia-float-btn';
-    btn.innerHTML = `${SHIELD_SVG}<span>${CTX_LABELS[ctx] || CTX_LABELS.text}</span>`;
+    const btn = mkEl('button', 'vigia-float-btn');
+    btn.append(makeShield(), mkEl('span', null, CTX_LABELS[ctx] || CTX_LABELS.text));
     btn.addEventListener('click', e => {
       e.stopPropagation(); e.preventDefault();
       runCheck(postEl, ctx);
@@ -172,21 +222,19 @@ function renderIdleBtn(postEl, ctxs) {
   }
 
   // Plusieurs types → menu : l'utilisateur choisit quoi vérifier précisément
-  const menu = document.createElement('div');
-  menu.className = 'vigia-float-menu';
-
-  const title = document.createElement('div');
-  title.className = 'vigia-float-title';
-  title.innerHTML = `${SHIELD_SVG}<span>Vérifier avec VigIA</span>`;
+  const menu = mkEl('div', 'vigia-float-menu');
+  const title = mkEl('div', 'vigia-float-title');
+  title.append(makeShield(), mkEl('span', null, 'Vérifier avec VigIA'));
   menu.appendChild(title);
 
-  const row = document.createElement('div');
-  row.className = 'vigia-float-options';
+  const row = mkEl('div', 'vigia-float-options');
   list.forEach(ctx => {
-    const opt = document.createElement('button');
-    opt.className = `vigia-float-opt vigia-opt--${ctx}`;
+    const opt = mkEl('button', `vigia-float-opt vigia-opt--${ctx}`);
     opt.title = CTX_LABELS[ctx] || '';
-    opt.innerHTML = `<span class="vigia-opt-ic">${CTX_ICON[ctx] || '🔍'}</span><span>${CTX_SHORT[ctx] || 'Vérifier'}</span>`;
+    opt.append(
+      mkEl('span', 'vigia-opt-ic', CTX_ICON[ctx] || '🔍'),
+      mkEl('span', null, CTX_SHORT[ctx] || 'Vérifier'),
+    );
     opt.addEventListener('click', e => {
       e.stopPropagation(); e.preventDefault();
       runCheck(postEl, ctx);
@@ -306,9 +354,8 @@ function injectPostBar(el) {
   // Idempotent : ré-injecte si React a retiré notre bouton mais gardé l'élément
   if (el.querySelector(':scope > .vigia-postbar')) return;
   try {
-    const bar = document.createElement('div');
-    bar.className = 'vigia-postbar';
-    bar.innerHTML = `${SHIELD_SVG}<span>Vérifier avec VigIA</span>`;
+    const bar = mkEl('div', 'vigia-postbar');
+    bar.append(makeShield(), mkEl('span', null, 'Vérifier avec VigIA'));
     bar.addEventListener('click', e => {
       e.stopPropagation();
       e.preventDefault();
@@ -397,10 +444,15 @@ function buildPayload(postEl, context) {
     return { type: 'url', content: { url }, source: SITE, cacheKey: `url:${simpleHash(url)}` };
   }
   if (context === 'account') {
-    const name = postEl.querySelector('h1, h2')?.innerText?.trim()
+    const name = findAuthorName(postEl)
       || postEl.getAttribute('aria-label')
-      || location.pathname.replace(/^\//, '').split('/')[0];
-    return { type: 'account', content: { profile_name: name, profile_image_url: '' }, source: SITE, cacheKey: `acc:${simpleHash(name)}` };
+      || decodeURIComponent(location.pathname.replace(/^\//, '').split('/')[0]);
+    let img = '';
+    try {
+      const imgEl = postEl.querySelector('img[src*="scontent"], img[src*="fbcdn"], img[src*="licdn"], img[src*="cdninstagram"], img[src*="twimg"]');
+      img = imgEl?.src || '';
+    } catch (_) {}
+    return { type: 'account', content: { profile_name: name, profile_image_url: img }, source: SITE, cacheKey: `acc:${simpleHash(name)}` };
   }
   // text (défaut)
   const textEl = postEl.querySelector('div[dir="auto"], [data-testid="tweetText"], .break-words, p') || postEl;
@@ -428,12 +480,17 @@ function notifyPopup(context, result) {
 // ── États du floating panel ────────────────────────────────────
 
 function setCtaLoading(cta) {
-  cta.innerHTML = `<div class="vigia-loading"><span class="vigia-spinner"></span>Analyse en cours…</div>`;
+  cta.replaceChildren();
+  const wrap = mkEl('div', 'vigia-loading');
+  wrap.appendChild(mkEl('span', 'vigia-spinner'));
+  wrap.appendChild(document.createTextNode('Analyse en cours…'));
+  cta.appendChild(wrap);
 }
 
 function setCtaError(cta, msg) {
   _hasResult = false;
-  cta.innerHTML = `<div class="vigia-error">${msg}</div>`;
+  cta.replaceChildren();
+  cta.appendChild(mkEl('div', 'vigia-error', msg));
   setTimeout(scheduleHide, 3000);
 }
 
@@ -461,31 +518,41 @@ function renderResult(cta, result, context, content) {
   const tgtLbl = { link: 'Lien analysé', account: 'Compte analysé', video: 'Média analysé', text: 'Texte analysé' }[context] || 'Élément analysé';
   const icons  = { red: '⚠️', orange: '⚠️', green: '✅', error: '❓' };
 
-  cta.innerHTML = `
-    <div class="vigia-result vigia-result--${level}">
-      <div class="vigia-result-header">
-        <span class="vigia-result-icon">${icons[level] || '❓'}</span>
-        <span class="vigia-result-module">${module}</span>
-        ${score !== null ? `<span class="vigia-result-score">${score}%</span>` : ''}
-        <button class="vigia-result-close" title="Fermer">✕</button>
-      </div>
-      <div class="vigia-result-label">${escHtml(label)}</div>
-      ${detail ? `<div class="vigia-result-detail">${escHtml(detail)}</div>` : ''}
-      ${target ? `<div class="vigia-result-target"><span class="vigia-result-target-lbl">${tgtLbl}</span>${escHtml(target)}</div>` : ''}
-      <button class="vigia-result-report">Signaler</button>
-    </div>`;
+  cta.replaceChildren();
+  const box = mkEl('div', `vigia-result vigia-result--${level}`);
 
-  cta.querySelector('.vigia-result-close')?.addEventListener('click', e => {
+  const header = mkEl('div', 'vigia-result-header');
+  header.appendChild(mkEl('span', 'vigia-result-icon', icons[level] || '❓'));
+  header.appendChild(mkEl('span', 'vigia-result-module', module));
+  if (score !== null) header.appendChild(mkEl('span', 'vigia-result-score', score + '%'));
+  const closeBtn = mkEl('button', 'vigia-result-close', '✕');
+  closeBtn.title = 'Fermer';
+  header.appendChild(closeBtn);
+  box.appendChild(header);
+
+  box.appendChild(mkEl('div', 'vigia-result-label', label));
+  if (detail) box.appendChild(mkEl('div', 'vigia-result-detail', detail));
+  if (target) {
+    const t = mkEl('div', 'vigia-result-target');
+    t.appendChild(mkEl('span', 'vigia-result-target-lbl', tgtLbl));
+    t.appendChild(document.createTextNode(target));
+    box.appendChild(t);
+  }
+  const reportBtn = mkEl('button', 'vigia-result-report', 'Signaler');
+  box.appendChild(reportBtn);
+  cta.appendChild(box);
+
+  closeBtn.addEventListener('click', e => {
     e.stopPropagation();
     _hasResult = false;
     _post = null;
     FLOAT.classList.remove('vigia-float--on');
   });
-  cta.querySelector('.vigia-result-report')?.addEventListener('click', e => {
+  reportBtn.addEventListener('click', e => {
     e.stopPropagation();
     chrome.runtime.sendMessage({ type: 'REPORT', payload: { result, url: location.href } });
-    e.target.textContent = 'Signalé ✓';
-    e.target.disabled = true;
+    reportBtn.textContent = 'Signalé ✓';
+    reportBtn.disabled = true;
   });
 
   setTimeout(() => {
@@ -534,8 +601,4 @@ function simpleHash(str) {
   let h = 0;
   for (let i = 0; i < Math.min(str.length, 200); i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
   return h.toString(36);
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
