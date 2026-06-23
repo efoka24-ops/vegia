@@ -1,7 +1,6 @@
-// URL du backend de production (domaine custom mappé sur le service Railway).
-// Si tu utilises l'URL Railway brute (*.up.railway.app), remplace-la ici
-// ET ajoute-la dans host_permissions du manifest.json.
-const DEFAULT_API_BASE = 'https://api.vigia.cm/api/v1';
+// URL du backend de production (Railway). Si tu mappes un domaine custom
+// (api.vigia.cm), remplace-la ici ET dans host_permissions du manifest.json.
+const DEFAULT_API_BASE = 'https://vegia-production.up.railway.app/api/v1';
 
 // Paramètres configurables par l'utilisateur (popup) via chrome.storage.local :
 //   apiBase  : surcharge de l'URL du backend

@@ -37,7 +37,8 @@
     "https://threads.net/*",
     "https://www.snapchat.com/*",
     "https://t.me/*",
-    "https://api.vigia.cm/*"
+    "https://api.vigia.cm/*",
+    "https://vegia-production.up.railway.app/*"
   ],
   "background": {
     "service_worker": "background.js",
