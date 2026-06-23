@@ -50,6 +50,53 @@
   box-shadow: 0 6px 20px rgba(10,92,66,.5);
 }
 
+/* ── Menu multi-options (survol : texte / vidéo / lien / compte) ── */
+.vigia-float-menu {
+  background: #11201A;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 10px 34px rgba(0,0,0,.45);
+  animation: vigia-fadein .15s ease both;
+}
+
+.vigia-float-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #fff;
+  font: 800 12px/1 var(--vig-font);
+  padding: 2px 4px 9px;
+}
+
+.vigia-float-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.vigia-float-opt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 10px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  color: #e8efe9;
+  font: 700 12px/1 var(--vig-font);
+  cursor: pointer;
+  transition: background .12s, border-color .12s, transform .1s;
+}
+
+.vigia-float-opt:hover {
+  background: rgba(10,92,66,.30);
+  border-color: rgba(10,92,66,.6);
+  transform: translateY(-1px);
+}
+
+.vigia-opt-ic { font-size: 15px; line-height: 1; }
+
 /* ── État chargement ─────────────────────────────────────────── */
 @keyframes vigia-spin { to { transform: rotate(360deg); } }
 

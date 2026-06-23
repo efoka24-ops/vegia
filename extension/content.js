@@ -47,20 +47,34 @@ const CTX_TO_MOD = {
   video: 'media', text: 'info', link: 'link', account: 'account',
 };
 
+// Libellés courts + icônes pour le menu multi-options au survol
+const CTX_ICON  = { video: '🎬', text: '📰', link: '🔗', account: '👤' };
+const CTX_SHORT = { video: 'Vidéo', text: 'Texte', link: 'Lien', account: 'Compte' };
+
 const SHIELD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2L21 6V12C21 17 17 21 12 22C7 21 3 17 3 12V6Z" fill="#fff" fill-opacity=".9"/><path d="M8 12l3 3 5-6" stroke="#0A5C42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-// ── Détection du type de contenu ──────────────────────────────
-// Jamais null : tout post visible reçoit au minimum 'text'
+// ── Détection des types de contenu vérifiables ────────────────
+// Renvoie un tableau ordonné (jamais vide) parmi : video, text, link, account.
+// L'utilisateur choisit ensuite précisément quoi vérifier au survol.
 
-function detectContext(postEl) {
-  if (postEl.querySelector('video')) return 'video';
+function isProfilePage() {
+  const slug = location.pathname.replace(/^\//, '').split('/')[0].split('?')[0];
+  const feedSlugs = ['feed', 'watch', 'groups', 'events', 'marketplace',
+                     'notifications', 'messages', 'home', 'explore', 'reels', ''];
+  return slug.length > 2 && !feedSlugs.includes(slug);
+}
+
+function detectContexts(postEl) {
+  const ctxs = [];
+
+  if (postEl.querySelector('video')) ctxs.push('video');
 
   const link = postEl.querySelector([
     'a[href*="l.facebook.com/l.php"]', 'a[href*="bit.ly"]',
     'a[href*=".xyz"]', 'a[href*="t.co"]', 'a[href*="linktr.ee"]',
     'a[href*="tinyurl"]', 'a[href*="goo.gl"]',
   ].join(','));
-  if (link) return 'link';
+  if (link) ctxs.push('link');
 
   const textEl = postEl.querySelector([
     'div[dir="auto"]', '[data-testid="tweetText"]', '.break-words',
@@ -68,13 +82,17 @@ function detectContext(postEl) {
     'span[class*="text"]', 'div[class*="text-content"]',
     'div[data-e2e="browse-video-desc"]',
   ].join(','));
-  if (textEl?.innerText?.trim().length > 10) return 'text';
+  const hasText = (textEl?.innerText?.trim().length > 10)
+    || (postEl.innerText || '').trim().length > 10;
+  if (hasText) ctxs.push('text');
 
-  // Fallback : n'importe quel texte visible dans le post
-  const raw = (postEl.innerText || '').trim();
-  if (raw.length > 10) return 'text';
+  // Compte : proposé sur les pages de profil, ou si le post expose un nom (h1/h2)
+  if (isProfilePage() || postEl.querySelector('h1, h2, [data-testid="UserName"]')) {
+    ctxs.push('account');
+  }
 
-  return 'text'; // toujours afficher le bouton sur un conteneur de post
+  if (ctxs.length === 0) ctxs.push('text'); // toujours au moins le texte
+  return ctxs;
 }
 
 // ── Floating CTA (un seul élément fixe, zéro injection dans les posts) ─
@@ -100,7 +118,7 @@ document.addEventListener('mousemove', e => {
   _mouseY = e.clientY;
 }, { passive: true });
 
-function showFloat(postEl, ctx) {
+function showFloat(postEl, ctxs) {
   if (_post === postEl && FLOAT.classList.contains('vigia-float--on')) return;
 
   clearTimeout(_hideT);
@@ -109,28 +127,63 @@ function showFloat(postEl, ctx) {
   // Positionner près du curseur (toujours visible dans le viewport)
   const W = 300;
   const x = Math.max(8, Math.min(_mouseX - W / 2, window.innerWidth - W - 8));
-  const y = Math.min(_mouseY + 18, window.innerHeight - 64);
+  const y = Math.min(_mouseY + 18, window.innerHeight - 120);
 
   FLOAT.style.left  = x + 'px';
   FLOAT.style.top   = y + 'px';
   FLOAT.style.width = W + 'px';
 
-  if (!_hasResult) renderIdleBtn(postEl, ctx);
+  if (!_hasResult) renderIdleBtn(postEl, ctxs);
   FLOAT.classList.add('vigia-float--on');
 }
 
-function renderIdleBtn(postEl, ctx) {
+function runCheck(postEl, ctx) {
+  _hasResult = true;
+  triggerAnalysis(postEl, ctx, FLOAT);
+}
+
+function renderIdleBtn(postEl, ctxs) {
   FLOAT.innerHTML = '';
-  const btn = document.createElement('button');
-  btn.className = 'vigia-float-btn';
-  btn.innerHTML = `${SHIELD_SVG}<span>${CTX_LABELS[ctx] || CTX_LABELS.text}</span>`;
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    e.preventDefault();
-    _hasResult = true;
-    triggerAnalysis(postEl, ctx, FLOAT);
+  const list = Array.isArray(ctxs) ? ctxs : [ctxs || 'text'];
+
+  // Un seul type → bouton unique (comportement d'origine)
+  if (list.length === 1) {
+    const ctx = list[0];
+    const btn = document.createElement('button');
+    btn.className = 'vigia-float-btn';
+    btn.innerHTML = `${SHIELD_SVG}<span>${CTX_LABELS[ctx] || CTX_LABELS.text}</span>`;
+    btn.addEventListener('click', e => {
+      e.stopPropagation(); e.preventDefault();
+      runCheck(postEl, ctx);
+    });
+    FLOAT.appendChild(btn);
+    return;
+  }
+
+  // Plusieurs types → menu : l'utilisateur choisit quoi vérifier précisément
+  const menu = document.createElement('div');
+  menu.className = 'vigia-float-menu';
+
+  const title = document.createElement('div');
+  title.className = 'vigia-float-title';
+  title.innerHTML = `${SHIELD_SVG}<span>Vérifier avec VigIA</span>`;
+  menu.appendChild(title);
+
+  const row = document.createElement('div');
+  row.className = 'vigia-float-options';
+  list.forEach(ctx => {
+    const opt = document.createElement('button');
+    opt.className = `vigia-float-opt vigia-opt--${ctx}`;
+    opt.title = CTX_LABELS[ctx] || '';
+    opt.innerHTML = `<span class="vigia-opt-ic">${CTX_ICON[ctx] || '🔍'}</span><span>${CTX_SHORT[ctx] || 'Vérifier'}</span>`;
+    opt.addEventListener('click', e => {
+      e.stopPropagation(); e.preventDefault();
+      runCheck(postEl, ctx);
+    });
+    row.appendChild(opt);
   });
-  FLOAT.appendChild(btn);
+  menu.appendChild(row);
+  FLOAT.appendChild(menu);
 }
 
 function scheduleHide() {
@@ -158,12 +211,12 @@ function findPostUnderCursor(target) {
       if (!el) continue;
 
       // Contexte déjà mis en cache
-      if (el.dataset.vigiaCtx) return el;
+      if (el.dataset.vigiaCtxs) return el;
 
       // Détection à la volée (lazy) — contenu peut avoir chargé depuis la dernière fois
-      const ctx = detectContext(el);
-      if (ctx) {
-        el.dataset.vigiaCtx = ctx;
+      const ctxs = detectContexts(el);
+      if (ctxs.length) {
+        el.dataset.vigiaCtxs = ctxs.join(',');
         return el;
       }
     } catch (_) {}
@@ -183,7 +236,8 @@ document.addEventListener('mouseover', e => {
 
   const postEl = findPostUnderCursor(e.target);
   if (postEl) {
-    showFloat(postEl, postEl.dataset.vigiaCtx);
+    const ctxs = (postEl.dataset.vigiaCtxs || 'text').split(',');
+    showFloat(postEl, ctxs);
   } else {
     scheduleHide();
   }
@@ -202,9 +256,9 @@ function markPosts() {
     } catch (_) {}
   }
   posts.slice(0, 40).forEach(el => {
-    if (el.dataset.vigiaCtx) return; // déjà marqué
-    const ctx = detectContext(el);
-    if (ctx) el.dataset.vigiaCtx = ctx;
+    if (el.dataset.vigiaCtxs) return; // déjà marqué
+    const ctxs = detectContexts(el);
+    if (ctxs.length) el.dataset.vigiaCtxs = ctxs.join(',');
   });
 }
 
