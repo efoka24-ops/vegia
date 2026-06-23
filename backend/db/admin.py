@@ -26,7 +26,8 @@ def get_stats() -> dict:
 
 
 def get_analytics() -> dict:
-    out = {"unique_users": 0, "total_verifs": 0, "by_country": [], "by_platform": [], "by_level": [], "recent": []}
+    out = {"unique_users": 0, "total_verifs": 0, "by_country": [], "by_platform": [],
+           "by_level": [], "by_type": [], "by_city": [], "by_hour": [], "by_day": [], "recent": []}
     try:
         with get_db_connection() as conn:
             out["unique_users"] = conn.execute(text(
@@ -56,8 +57,38 @@ def get_analytics() -> dict:
                     "GROUP BY level ORDER BY c DESC"
                 )).fetchall()
             ]
+            out["by_type"] = [
+                {"type": (r[0] or "").replace("ContentType.", "") or "—", "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT ctype, COUNT(*) c FROM api_usage WHERE endpoint='verify' "
+                    "GROUP BY ctype ORDER BY c DESC"
+                )).fetchall()
+            ]
+            out["by_city"] = [
+                {"city": r[0] or "Inconnu", "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT city, COUNT(*) c FROM api_usage WHERE endpoint='verify' "
+                    "GROUP BY city ORDER BY c DESC LIMIT 20"
+                )).fetchall()
+            ]
+            out["by_hour"] = [
+                {"hour": int(r[0]), "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT EXTRACT(HOUR FROM created_at AT TIME ZONE 'Africa/Douala')::int h, COUNT(*) c "
+                    "FROM api_usage WHERE endpoint='verify' GROUP BY h ORDER BY h"
+                )).fetchall()
+            ]
+            out["by_day"] = [
+                {"day": str(r[0]), "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT (created_at AT TIME ZONE 'Africa/Douala')::date d, COUNT(*) c "
+                    "FROM api_usage WHERE endpoint='verify' AND created_at > NOW() - INTERVAL '14 days' "
+                    "GROUP BY d ORDER BY d"
+                )).fetchall()
+            ]
             out["recent"] = [
-                {"time": str(r[0]), "country": r[1], "city": r[2], "source": r[3], "ctype": r[4], "level": r[5]}
+                {"time": str(r[0]), "country": r[1], "city": r[2], "source": r[3],
+                 "ctype": (r[4] or "").replace("ContentType.", ""), "level": r[5]}
                 for r in conn.execute(text(
                     "SELECT created_at, country, city, source, ctype, level FROM api_usage "
                     "WHERE endpoint='verify' ORDER BY created_at DESC LIMIT 50"
@@ -114,7 +145,8 @@ def user_detail(uid: str, limit: int = 50) -> list[dict]:
                 "ORDER BY created_at DESC LIMIT :l"
             ), {"u": uid, "l": limit}).fetchall()
         return [
-            {"time": str(r[0]), "source": r[1], "ctype": r[2], "level": r[3], "city": r[4], "country": r[5]}
+            {"time": str(r[0]), "source": r[1], "ctype": (r[2] or "").replace("ContentType.", ""),
+             "level": r[3], "city": r[4], "country": r[5]}
             for r in rows
         ]
     except Exception:

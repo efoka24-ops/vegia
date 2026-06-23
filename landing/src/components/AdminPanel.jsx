@@ -11,6 +11,25 @@ function defaultApiBase() {
   return 'https://vegia-production.up.railway.app/api/v1';
 }
 
+const TYPE_LABEL = { text: 'Texte', url: 'Lien', image: 'Média', account: 'Compte' };
+function cleanType(t) {
+  const v = (t || '').replace('ContentType.', '');
+  return TYPE_LABEL[v] || v || '—';
+}
+
+function downloadCSV(filename, rows) {
+  if (!rows || !rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 export default function AdminPanel() {
   const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) || '');
   const [apiBase, setApiBase] = useState(() => sessionStorage.getItem(API_KEY) || defaultApiBase());
@@ -172,10 +191,14 @@ function Identities({ api }) {
 
   return (
     <div>
-      <p className="api-note" style={{ marginBottom: 14 }}>
-        Chaque utilisateur est identifié par un <strong>identifiant d'installation anonyme</strong>
-        (aucune donnée de compte personnelle). {users.length} utilisateur(s).
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <p className="api-note" style={{ margin: 0 }}>
+          Chaque utilisateur est identifié par un <strong>identifiant d'installation anonyme</strong>
+          (aucune donnée de compte personnelle). {users.length} utilisateur(s).
+        </p>
+        <button className="admin-tab" style={{ flexShrink: 0 }} onClick={() => downloadCSV('vigia-utilisateurs.csv',
+          users.map(u => ({ id: u.uid, ville: u.city, pays: u.country, navigateur: uaShort(u.user_agent), plateformes: u.platforms, verifs: u.verifs, alertes: u.alerts, premiere: u.first_seen, derniere: u.last_seen, ip: u.ip })))}>⬇ Exporter CSV</button>
+      </div>
       <table className="admin-table">
         <thead><tr>
           <th>Utilisateur</th><th>Localisation</th><th>Navigateur</th>
@@ -200,7 +223,7 @@ function Identities({ api }) {
                   </div>
                   {(detail[u.uid] || []).map((e, i) => (
                     <div key={i} style={{ fontSize: 12, padding: '2px 0', color: '#c9d6cf' }}>
-                      {(e.time || '').slice(0, 16).replace('T', ' ')} · {e.source || '—'} · {e.ctype || '—'} ·
+                      {(e.time || '').slice(0, 16).replace('T', ' ')} · {e.source || '—'} · {cleanType(e.ctype)} ·
                       <span style={{ color: e.level === 'red' ? '#f87171' : e.level === 'orange' ? '#fbbf24' : '#4ade80' }}> {e.level || '—'}</span>
                     </div>
                   ))}
@@ -282,7 +305,54 @@ function Analytics({ api }) {
           </tbody></table>
         </div>
       </div>
-      <h3 className="api-h3" style={{ marginTop: 24 }}>Activité récente</h3>
+      <div className="admin-grid2" style={{ marginTop: 24 }}>
+        <div>
+          <h3 className="api-h3">Par type de contenu</h3>
+          <table className="admin-table"><tbody>
+            {(data.by_type || []).map((t, i) => (
+              <tr key={i}><td>{cleanType(t.type)}</td><td>{t.count}</td></tr>
+            ))}
+          </tbody></table>
+          <h3 className="api-h3">Par ville</h3>
+          <table className="admin-table"><tbody>
+            {(data.by_city || []).map((c, i) => (
+              <tr key={i}><td>{c.city}</td><td>{c.count}</td></tr>
+            ))}
+          </tbody></table>
+        </div>
+        <div>
+          <h3 className="api-h3">Par heure (fuseau Douala)</h3>
+          {(() => {
+            const map = Object.fromEntries((data.by_hour || []).map(h => [h.hour, h.count]));
+            const hmax = Math.max(1, ...Object.values(map));
+            return Array.from({ length: 24 }, (_, h) => (
+              <div className="admin-bar-row" key={h}>
+                <span className="admin-bar-lbl" style={{ width: 40 }}>{String(h).padStart(2, '0')}h</span>
+                <span className="admin-bar-track"><span className="admin-bar-fill" style={{ width: `${((map[h] || 0) / hmax) * 100}%` }} /></span>
+                <span className="admin-bar-num">{map[h] || 0}</span>
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
+
+      <h3 className="api-h3" style={{ marginTop: 24 }}>Activité par jour (14 j)</h3>
+      {(() => {
+        const dmax = Math.max(1, ...(data.by_day || []).map(d => d.count));
+        return (data.by_day || []).map((d, i) => (
+          <div className="admin-bar-row" key={i}>
+            <span className="admin-bar-lbl">{d.day}</span>
+            <span className="admin-bar-track"><span className="admin-bar-fill" style={{ width: `${(d.count / dmax) * 100}%` }} /></span>
+            <span className="admin-bar-num">{d.count}</span>
+          </div>
+        ));
+      })()}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
+        <h3 className="api-h3" style={{ margin: 0 }}>Activité récente</h3>
+        <button className="admin-tab" onClick={() => downloadCSV('vigia-activite.csv',
+          (data.recent || []).map(r => ({ heure: r.time, ville: r.city, pays: r.country, plateforme: r.source, type: cleanType(r.ctype), verdict: r.level })))}>⬇ Exporter CSV</button>
+      </div>
       <table className="admin-table">
         <thead><tr><th>Heure</th><th>Lieu</th><th>Plateforme</th><th>Type</th><th>Verdict</th></tr></thead>
         <tbody>
@@ -291,7 +361,7 @@ function Analytics({ api }) {
               <td>{(r.time || '').slice(0, 16).replace('T', ' ')}</td>
               <td>{[r.city, r.country].filter(Boolean).join(', ') || '—'}</td>
               <td>{PLATFORM[r.source] || r.source || '—'}</td>
-              <td>{r.ctype || '—'}</td>
+              <td>{cleanType(r.ctype)}</td>
               <td>{r.level || '—'}</td>
             </tr>
           ))}
