@@ -14,5 +14,5 @@ COPY . .
 EXPOSE 8000
 
 # Forme shell pour que ${PORT} (injecté par Railway/Render) soit développé ;
-# repli sur 8000 en local.
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
+# repli sur 8000 en local. 1 worker : évite les migrations concurrentes au démarrage.
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1

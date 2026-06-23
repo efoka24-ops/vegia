@@ -41,6 +41,9 @@ async def init_db():
 
 def _create_tables():
     with engine.begin() as conn:
+        # Verrou consultatif : sérialise la migration entre workers/instances
+        # (évite les deadlocks sur ALTER TABLE quand plusieurs process démarrent).
+        conn.execute(text("SELECT pg_advisory_xact_lock(727274)"))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS official_accounts (
                 id          SERIAL PRIMARY KEY,
