@@ -69,7 +69,7 @@ async def verify(
     ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
     background_tasks.add_task(
         keymgr.record_event, auth["token"], "verify",
-        ip, x_client_id, body.source, str(body.type), level,
+        ip, x_client_id, body.source, body.type.value, level,
     )
 
     return VerifyResponse(
