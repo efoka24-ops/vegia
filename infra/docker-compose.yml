@@ -1,5 +1,8 @@
 version: '3.9'
 
+# Dev local. En production, Railway fournit PostgreSQL et build le Dockerfile.
+# La stratégie « APIs tierces » a supprimé le besoin de Redis et Qdrant.
+
 services:
   api:
     build:
@@ -12,42 +15,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
-      qdrant:
-        condition: service_started
-    volumes:
-      - ../backend/models:/app/models:ro
     restart: unless-stopped
 
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: vigia
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: vigia
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U vigia"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    command: redis-server --save 60 1
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
-
 volumes:
   pg_data:
-  redis_data:
-  qdrant_data:

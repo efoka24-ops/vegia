@@ -6,6 +6,10 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vigia:pass@localhost/vigia")
 
+# Railway/Heroku fournissent parfois "postgres://" que SQLAlchemy 2.0 ne reconnaît pas
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -52,3 +56,25 @@ async def init_db():
                 created_at  TIMESTAMPTZ DEFAULT NOW()
             )
         """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id            SERIAL PRIMARY KEY,
+                key           TEXT NOT NULL UNIQUE,
+                label         TEXT,
+                tier          TEXT DEFAULT 'pro',
+                monthly_quota INTEGER,
+                active        BOOLEAN DEFAULT TRUE,
+                created_at    TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS api_usage (
+                id         SERIAL PRIMARY KEY,
+                api_key    TEXT NOT NULL,
+                endpoint   TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_api_usage_key_time ON api_usage (api_key, created_at)"
+        ))

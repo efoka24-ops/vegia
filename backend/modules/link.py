@@ -1,57 +1,41 @@
 """
 Module Vérif-Lien — détection de phishing et arnaques.
 
-Classifieur scikit-learn (RandomForest) entraîné sur des features heuristiques d'URL.
-Modèle attendu : models/phishing_classifier.pkl
+Stratégie : Google Safe Browsing (si clé configurée) → repli sur heuristiques d'URL.
+Aucune dépendance ML : 100 % fonctionnel sans modèle entraîné.
 """
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from urllib.parse import urlparse
 
-import joblib
-import redis
-import os
+from modules.providers import safe_browsing_lookup
 
-MODEL_PATH = Path("models/phishing_classifier.pkl")
-
-SHORT_URL_PATTERN = re.compile(r"bit\.ly|tinyurl|ow\.ly|t\.co|goo\.gl|rb\.gy", re.I)
+SHORT_URL_PATTERN = re.compile(r"bit\.ly|tinyurl|ow\.ly|t\.co|goo\.gl|rb\.gy|cutt\.ly", re.I)
 IP_PATTERN        = re.compile(r"\d{1,3}(\.\d{1,3}){3}")
-URGENT_WORDS      = {"login", "verify", "account", "secure", "update", "confirm", "bank", "password"}
+SUSPECT_TLD       = re.compile(r"\.(xyz|top|tk|ml|ga|cf|gq|click|loan|work)(/|$|\?)", re.I)
+SCAM_PATTERN      = re.compile(
+    r"momo|mobile.?money|orange.?money|mtn|verify|confirm|account|secure|"
+    r"invest|gratuit|free.?money|bonus|gain|loterie|ponzi|doublez",
+    re.I,
+)
+URGENT_WORDS = {"login", "verify", "account", "secure", "update", "confirm", "bank", "password"}
 
 
 class LinkModule:
-    def __init__(self):
-        self._clf   = None
-        self._redis = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", 6379)),
-            db=0,
-            decode_responses=True,
-        )
-
-    def _load_model(self):
-        if self._clf:
-            return
-        if MODEL_PATH.exists():
-            self._clf = joblib.load(MODEL_PATH)
-
     async def analyze(self, url: str) -> dict:
         try:
-            # 1. Liste noire Redis
-            if self._redis.sismember("blacklist:urls", url):
-                return {"score": 1.0, "label": "lien présent dans la liste noire"}
+            # 1. Fournisseur externe (Google Safe Browsing)
+            sb = await safe_browsing_lookup(url)
+            if sb is not None and sb.get("threat"):
+                return {
+                    "score": 0.97,
+                    "label": f"lien signalé comme dangereux ({sb['threat'].lower()})",
+                    "sources": ["Google Safe Browsing"],
+                }
 
-            # 2. Classifieur ML
-            self._load_model()
-            features = self._extract_features(url)
-
-            if self._clf:
-                prob = float(self._clf.predict_proba([features])[0][1])
-            else:
-                # Fallback heuristique si le modèle n'est pas encore entraîné
-                prob = self._heuristic_score(features)
+            # 2. Heuristiques (toujours actives, repli si pas de clé / lien sain)
+            prob = self._heuristic_score(url)
 
             if prob >= 0.70:
                 label = "lien probablement malveillant"
@@ -65,28 +49,21 @@ class LinkModule:
         except Exception as e:
             return {"score": None, "label": "erreur d'analyse du lien", "error": str(e)}
 
-    def _extract_features(self, url: str) -> list:
+    def _heuristic_score(self, url: str) -> float:
         parsed = urlparse(url)
         netloc = parsed.netloc or ""
-        path   = parsed.path   or ""
+        path   = parsed.path or ""
         lower  = url.lower()
 
-        return [
-            len(url),                                                       # longueur totale
-            lower.count("."),                                               # nb de points
-            lower.count("-"),                                               # nb de tirets
-            lower.count("@"),                                               # présence @
-            1 if IP_PATTERN.search(netloc) else 0,                         # IP brute
-            1 if any(w in lower for w in URGENT_WORDS) else 0,             # mots urgence
-            1 if parsed.scheme == "https" else 0,                          # HTTPS
-            len(netloc),                                                    # longueur domaine
-            lower.count("/"),                                               # profondeur chemin
-            1 if SHORT_URL_PATTERN.search(netloc) else 0,                  # raccourcisseur
-            lower.count("="),                                               # nb de paramètres
-            1 if len(path) > 100 else 0,                                   # chemin très long
-        ]
+        risk = 0.0
+        if IP_PATTERN.search(netloc):              risk += 0.45   # IP brute au lieu d'un domaine
+        if SHORT_URL_PATTERN.search(netloc):       risk += 0.25   # raccourcisseur
+        if SUSPECT_TLD.search(lower):              risk += 0.30   # TLD à risque
+        if SCAM_PATTERN.search(lower):             risk += 0.35   # vocabulaire d'arnaque
+        if "@" in netloc:                          risk += 0.30   # leurre userinfo@
+        if any(w in lower for w in URGENT_WORDS):  risk += 0.15
+        if parsed.scheme != "https":               risk += 0.10
+        if netloc.count("-") >= 3:                 risk += 0.10   # domaine truffé de tirets
+        if len(path) > 100:                        risk += 0.10
 
-    def _heuristic_score(self, features: list) -> float:
-        # features[4]=IP, [5]=mots urgence, [9]=raccourcisseur, [3]=@
-        risk = features[4] * 0.4 + features[5] * 0.3 + features[9] * 0.2 + features[3] * 0.1
         return min(risk, 1.0)

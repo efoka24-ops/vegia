@@ -1,0 +1,12 @@
+# Configuration Railway pour le service backend VigIA.
+# Dans Railway : définir le "Root Directory" du service sur `backend`.
+# Ajouter un plugin PostgreSQL → la variable DATABASE_URL est injectée automatiquement.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/v1/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"

@@ -1,20 +1,41 @@
+"""
+Authentification par clé API (Bearer).
+
+- "public"          → extension grand public (quota par IP via le rate-limiter)
+- "vig_..."         → partenaire (clé en base, quota mensuel optionnel)
+- ADMIN_TOKEN (env) → endpoints d'administration des clés
+"""
 import os
+
 from fastapi import Header, HTTPException, status
 
-# Token public pour les requêtes non authentifiées (extension grand public)
-PUBLIC_TOKEN = "public"
-
-# Tokens B2B chargés depuis l'env (liste séparée par virgules)
-_VALID_TOKENS: set[str] = set(
-    filter(None, os.getenv("API_TOKENS", "").split(","))
-)
-_VALID_TOKENS.add(PUBLIC_TOKEN)
+from api.keys import lookup_key, usage_count
 
 
-async def verify_token(authorization: str = Header(...)):
+async def verify_token(authorization: str = Header(...)) -> dict:
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token manquant")
+
     token = authorization.removeprefix("Bearer ").strip()
-    if token not in _VALID_TOKENS:
+    info = lookup_key(token)
+    if info is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalide")
-    return token
+
+    # Quota mensuel (clés partenaires uniquement)
+    quota = info.get("monthly_quota")
+    if quota is not None and usage_count(token) >= quota:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Quota mensuel dépassé",
+        )
+
+    return {"token": token, **info}
+
+
+async def verify_admin(authorization: str = Header(...)) -> bool:
+    admin = os.getenv("ADMIN_TOKEN")
+    if not admin:
+        raise HTTPException(status_code=503, detail="Administration désactivée (ADMIN_TOKEN absent)")
+    if not authorization.startswith("Bearer ") or authorization.removeprefix("Bearer ").strip() != admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès administrateur requis")
+    return True

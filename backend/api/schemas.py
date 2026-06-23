@@ -46,3 +46,32 @@ class VerifyResponse(BaseModel):
 class BlacklistResponse(BaseModel):
     entries: list[str]
     count:   int
+
+
+class ReportRequest(BaseModel):
+    content_url: Optional[str] = None
+    result:      Optional[dict] = None
+    blacklist:   bool = False   # ajouter content_url à la liste noire
+    reason:      Optional[str] = None
+
+
+class ReportResponse(BaseModel):
+    ok: bool
+
+
+class KeyCreateRequest(BaseModel):
+    label:         str
+    tier:          str = "pro"
+    monthly_quota: Optional[int] = None
+
+
+class KeyCreateResponse(BaseModel):
+    key:   str
+    label: str
+    tier:  str
+
+
+class UsageResponse(BaseModel):
+    tier:          str
+    monthly_quota: Optional[int] = None
+    used_30d:      int

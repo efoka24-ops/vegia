@@ -1,63 +1,61 @@
 """
-Module Vérif-Info — fact-checking par similarité sémantique.
+Module Vérif-Info — détection de désinformation / sensationnalisme.
 
-Base vectorielle Qdrant, collection "fact_checks".
-Chaque document : { text, verdict, source_url, fact_checker }
+Stratégie : Claude (Anthropic) si clé configurée → repli sur heuristiques lexicales.
+Aucune dépendance ML : 100 % fonctionnel sans modèle local.
 """
 from __future__ import annotations
 
-from sentence_transformers import SentenceTransformer
-from qdrant_client import QdrantClient
-import os
+import re
 
-COLLECTION = "fact_checks"
-SIMILARITY_THRESHOLD = 0.75
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+from modules.providers import anthropic_classify_text
+
+ALERT_WORDS = [
+    "urgent", "massif", "choc", "exclusif", "partagez", "partager", "investissement",
+    "garanti", "doublez", "gratuit", "gagnez", "miracle", "secret", "scandale",
+]
+
+AI_PATTERNS = [
+    re.compile(r"il est (important|crucial|essentiel) de", re.I),
+    re.compile(r"il convient de (noter|souligner|mentionner)", re.I),
+    re.compile(r"en (conclusion|résumé|bref)[,\s]", re.I),
+    re.compile(r"dans (ce|cet) contexte", re.I),
+    re.compile(r"nous (pouvons|allons|devons) (noter|explorer|examiner)", re.I),
+]
 
 
 class InfoModule:
-    def __init__(self):
-        self._encoder = None
-        self._qdrant  = None
-
-    def _init(self):
-        if self._encoder:
-            return
-        self._encoder = SentenceTransformer(MODEL_NAME)
-        self._qdrant  = QdrantClient(
-            host=os.getenv("QDRANT_HOST", "localhost"),
-            port=int(os.getenv("QDRANT_PORT", 6333)),
-        )
-
     async def analyze(self, text: str) -> dict:
-        if len(text.strip()) < 20:
+        text = (text or "").strip()
+        if len(text) < 20:
             return {"score": 0.0, "label": "texte trop court pour analyse"}
 
-        try:
-            self._init()
-            embedding = self._encoder.encode(text).tolist()
+        # 1. Fournisseur externe (Claude)
+        ai = await anthropic_classify_text(text)
+        if ai is not None:
+            label = ai["label"] or "analyse de désinformation"
+            if ai.get("reason"):
+                label = f"{label} — {ai['reason']}"
+            return {"score": round(ai["risk"], 3), "label": label}
 
-            results = self._qdrant.search(
-                collection_name=COLLECTION,
-                query_vector=embedding,
-                limit=3,
-            )
+        # 2. Heuristiques (repli)
+        return self._heuristic(text)
 
-            if not results or results[0].score < SIMILARITY_THRESHOLD:
-                return {"score": 0.0, "label": "aucune correspondance dans la base fact-check"}
+    def _heuristic(self, text: str) -> dict:
+        lower = text.lower()
+        alert_hits = [w for w in ALERT_WORDS if w in lower]
+        ai_hits = [p for p in AI_PATTERNS if p.search(text)]
+        excl = text.count("!")
 
-            top     = results[0]
-            verdict = top.payload.get("verdict", "inconnu")  # "vrai" | "faux" | "trompeur"
-            sim     = float(top.score)
+        score = min(len(alert_hits) * 0.22 + len(ai_hits) * 0.15 + min(excl, 5) * 0.05, 1.0)
 
-            # Score de risque élevé si similaire à un contenu réfuté
-            risk = sim if verdict in ("faux", "trompeur") else (1.0 - sim) * 0.2
+        if score >= 0.70:
+            label = "contenu à fort potentiel de désinformation"
+        elif score >= 0.35:
+            label = "ton inhabituel — à vérifier avant de partager"
+        else:
+            label = "aucun indicateur de désinformation détecté"
 
-            return {
-                "score":   round(risk, 3),
-                "label":   f"similaire à un contenu {verdict} (confiance {sim:.0%})",
-                "sources": [top.payload.get("source_url", "")],
-            }
-
-        except Exception as e:
-            return {"score": None, "label": "erreur fact-checking", "error": str(e)}
+        if alert_hits:
+            label += f" (termes d'alerte : {', '.join(alert_hits[:3])})"
+        return {"score": round(score, 3), "label": label}

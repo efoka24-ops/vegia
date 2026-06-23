@@ -1,5 +1,20 @@
-const API_BASE = 'http://localhost:8000/api/v1';
-const DEMO_MODE = true; // true = simuler l'IA sans backend (beta)
+// URL du backend de production (domaine custom mappé sur le service Railway).
+// Si tu utilises l'URL Railway brute (*.up.railway.app), remplace-la ici
+// ET ajoute-la dans host_permissions du manifest.json.
+const DEFAULT_API_BASE = 'https://api.vigia.cm/api/v1';
+
+// Paramètres configurables par l'utilisateur (popup) via chrome.storage.local :
+//   apiBase  : surcharge de l'URL du backend
+//   token    : 'public' (défaut) ou une clé partenaire 'vig_...'
+//   demoMode : true pour forcer la simulation locale (sans backend)
+async function getSettings() {
+  const { apiBase, token, demoMode } = await chrome.storage.local.get(['apiBase', 'token', 'demoMode']);
+  return {
+    apiBase: apiBase || DEFAULT_API_BASE,
+    token: token || 'public',
+    demoMode: demoMode === true,
+  };
+}
 
 // ---------- Messages depuis le content script ----------
 
@@ -39,26 +54,27 @@ async function handleVerify(payload) {
     }
   }
 
-  // Mode démo : réponses simulées sans backend
-  if (DEMO_MODE) {
+  const settings = await getSettings();
+
+  // Mode démo explicite : réponses simulées sans backend
+  if (settings.demoMode) {
     return simulateAnalysis(body);
   }
 
-  // Mode production : appel API réel
+  // Mode production : appel API réel (repli automatique sur la simulation si injoignable)
   try {
-    const { token } = await chrome.storage.local.get('token');
-    const res = await fetch(`${API_BASE}/verify`, {
+    const res = await fetch(`${settings.apiBase}/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token || 'public'}`
+        'Authorization': `Bearer ${settings.token}`
       },
       body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('[VigIA] API injoignable, bascule sur le mode démo');
+    console.warn('[VigIA] API injoignable, bascule sur le mode démo', err);
     return simulateAnalysis(body);
   }
 }
@@ -224,9 +240,10 @@ function simulateAnalysis(body) {
 
 async function sendEmailReport(payload) {
   const { to, url, date, results } = payload;
+  const { apiBase } = await getSettings();
 
   const endpoints = [
-    `${API_BASE}/send-report`,
+    `${apiBase}/send-report`,
     'http://localhost:3000/api/send-report',
   ];
 
@@ -248,7 +265,8 @@ async function sendEmailReport(payload) {
 
 async function submitReport(payload) {
   try {
-    await fetch(`${API_BASE}/report`, {
+    const { apiBase } = await getSettings();
+    await fetch(`${apiBase}/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -282,7 +300,8 @@ async function refreshBlacklist() {
 
   // Tenter une mise à jour depuis l'API (optionnel)
   try {
-    const res = await fetch(`${API_BASE}/blacklist`, { signal: AbortSignal.timeout(3000) });
+    const { apiBase } = await getSettings();
+    const res = await fetch(`${apiBase}/blacklist`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       const { entries } = await res.json();
       await chrome.storage.local.set({ blacklist: [...new Set([...merged, ...entries])] });
