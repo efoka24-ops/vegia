@@ -41,7 +41,7 @@ app.add_middleware(
     allow_origin_regex=r"^(chrome-extension|moz-extension)://.*$",
     allow_origins=_extra or ["*"],
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["*"],
 )
 
 app.include_router(router, prefix="/api/v1")

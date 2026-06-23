@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Backend VigIA (Railway). Modifie ici si tu mappes un domaine custom.
 export const API_BASE = 'https://vegia-production.up.railway.app/api/v1';
@@ -30,14 +31,19 @@ export async function verify(type, value) {
 
   const clientId = await getClientId();
 
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer public',
+  };
+  // En-tête custom : envoyé sur natif (mobile). Sur web il déclencherait un
+  // preflight CORS ; le backend l'autorise désormais (allow_headers *), mais on
+  // reste prudent tant que le déploiement n'est pas propagé.
+  if (Platform.OS !== 'web') headers['X-Client-Id'] = clientId;
+
   const res = await fetch(`${API_BASE}/verify`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer public',
-      'X-Client-Id': clientId,
-    },
-    body: JSON.stringify({ type, content, source: 'mobile' }),
+    headers,
+    body: JSON.stringify({ type, content, source: Platform.OS === 'web' ? 'mobile-web' : 'mobile' }),
   });
 
   if (!res.ok) throw new Error('Erreur ' + res.status);
