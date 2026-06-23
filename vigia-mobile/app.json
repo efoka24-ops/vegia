@@ -4,9 +4,11 @@
     "slug": "vigia-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#11201A",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#11201A"
     },
@@ -16,10 +18,15 @@
       "bundleIdentifier": "cm.vigia.app"
     },
     "android": {
-      "package": "cm.vigia.app"
+      "package": "cm.vigia.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A5C42"
+      }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     }
   }
 }
