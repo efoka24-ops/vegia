@@ -24,10 +24,15 @@ const POST_SELECTORS = {
   twitter:   ['article[data-testid="tweet"]', 'article'],
   whatsapp:  ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
   linkedin:  [
+    // Nouvelle UI "SDUI" (classes obfusquées) : ancres stables
+    'div[data-testid="mainFeed"] div[data-lazy-mount-id]',
+    'div[data-sdui-screen] div[data-lazy-mount-id]',
+    'main[id="workspace"] div[data-lazy-mount-id]',
+    // Ancienne UI (repli)
     'div.feed-shared-update-v2',
-    'div.fie-impression-container',
     'div[data-urn^="urn:li:activity"]',
-    'div.update-components-update-v2',
+    'div.fie-impression-container',
+    'div[data-finite-scroll-hotkey-item]',
     'div.occludable-update',
   ],
   instagram: [
