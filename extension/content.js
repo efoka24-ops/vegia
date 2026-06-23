@@ -574,6 +574,24 @@ function renderResult(cta, result, context, content) {
   if (score !== null) {
     box.appendChild(mkEl('div', 'vigia-result-scale', 'Indice de risque — 0 % = sûr · 100 % = très suspect'));
   }
+  // Boucle de feedback : l'utilisateur indique si le verdict est juste
+  const fb = mkEl('div', 'vigia-result-fb');
+  fb.appendChild(mkEl('span', 'vigia-fb-q', 'Ce verdict est-il correct ?'));
+  const up = mkEl('button', 'vigia-fb-btn', '👍');
+  const down = mkEl('button', 'vigia-fb-btn', '👎');
+  fb.append(up, down);
+  box.appendChild(fb);
+  const sendFb = (correct) => {
+    try {
+      chrome.runtime.sendMessage({ type: 'FEEDBACK', payload: {
+        request_id: result.request_id, level: result.level, ctype: context, source: SITE, correct,
+      }});
+    } catch (_) {}
+    fb.replaceChildren(mkEl('span', 'vigia-fb-q', 'Merci pour votre retour ✓'));
+  };
+  up.addEventListener('click', e => { e.stopPropagation(); sendFb(true); });
+  down.addEventListener('click', e => { e.stopPropagation(); sendFb(false); });
+
   const reportBtn = mkEl('button', 'vigia-result-report', 'Signaler');
   box.appendChild(reportBtn);
   cta.appendChild(box);

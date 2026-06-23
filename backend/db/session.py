@@ -103,3 +103,31 @@ def _create_tables():
             ("user_agent", "TEXT"),
         ]:
             conn.execute(text(f"ALTER TABLE api_usage ADD COLUMN IF NOT EXISTS {col} {typ}"))
+
+        # Boucle de feedback : justesse des verdicts (constitue un dataset)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                id          SERIAL PRIMARY KEY,
+                request_id  TEXT,
+                level       TEXT,
+                ctype       TEXT,
+                source      TEXT,
+                correct     BOOLEAN,
+                comment     TEXT,
+                client_id   TEXT,
+                created_at  TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+
+        # Registre VigIA Verified : demandes d'institutions (Sprint 2)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS verified_requests (
+                id           SERIAL PRIMARY KEY,
+                name         TEXT NOT NULL,
+                category     TEXT,
+                official_url TEXT,
+                contact      TEXT,
+                status       TEXT DEFAULT 'pending',
+                created_at   TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))

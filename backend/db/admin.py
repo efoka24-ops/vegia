@@ -153,6 +153,137 @@ def user_detail(uid: str, limit: int = 50) -> list[dict]:
         return []
 
 
+def save_feedback(request_id, level, ctype, source, correct, comment, client_id) -> None:
+    try:
+        with get_db_connection() as conn:
+            conn.execute(text(
+                "INSERT INTO feedback (request_id, level, ctype, source, correct, comment, client_id) "
+                "VALUES (:r, :l, :c, :s, :ok, :cm, :cid)"
+            ), {"r": request_id, "l": level, "c": (ctype or "").replace("ContentType.", ""),
+                "s": source, "ok": correct, "cm": comment, "cid": client_id})
+            conn.commit()
+    except Exception:
+        pass
+
+
+def get_feedback(limit: int = 100) -> dict:
+    out = {"total": 0, "correct": 0, "incorrect": 0, "accuracy": None, "recent": []}
+    try:
+        with get_db_connection() as conn:
+            out["total"] = conn.execute(text("SELECT COUNT(*) FROM feedback")).scalar() or 0
+            out["correct"] = conn.execute(text("SELECT COUNT(*) FROM feedback WHERE correct = TRUE")).scalar() or 0
+            out["incorrect"] = out["total"] - out["correct"]
+            if out["total"]:
+                out["accuracy"] = round(100.0 * out["correct"] / out["total"], 1)
+            out["recent"] = [
+                {"time": str(r[0]), "level": r[1], "ctype": r[2], "source": r[3], "correct": r[4], "comment": r[5]}
+                for r in conn.execute(text(
+                    "SELECT created_at, level, ctype, source, correct, comment FROM feedback "
+                    "ORDER BY created_at DESC LIMIT :l"
+                ), {"l": limit}).fetchall()
+            ]
+    except Exception:
+        pass
+    return out
+
+
+# ---------- Carte publique des menaces (agrégée, anonymisée) ----------
+
+def get_threat_map() -> dict:
+    out = {"by_city": [], "by_country": [], "recent_scams": [], "total_alerts": 0}
+    try:
+        with get_db_connection() as conn:
+            out["total_alerts"] = conn.execute(text(
+                "SELECT COUNT(*) FROM api_usage WHERE endpoint='verify' AND level='red'"
+            )).scalar() or 0
+            out["by_city"] = [
+                {"city": r[0] or "Inconnu", "country": r[1], "code": r[2], "alerts": r[3]}
+                for r in conn.execute(text(
+                    "SELECT city, country, country_code, COUNT(*) c FROM api_usage "
+                    "WHERE endpoint='verify' AND level='red' GROUP BY city, country, country_code "
+                    "ORDER BY c DESC LIMIT 50"
+                )).fetchall()
+            ]
+            out["by_country"] = [
+                {"country": r[0] or "Inconnu", "code": r[1], "alerts": r[2]}
+                for r in conn.execute(text(
+                    "SELECT country, country_code, COUNT(*) c FROM api_usage "
+                    "WHERE endpoint='verify' AND level='red' GROUP BY country, country_code ORDER BY c DESC LIMIT 30"
+                )).fetchall()
+            ]
+            # Types de menaces récentes (agrégées, sans contenu personnel)
+            out["recent_scams"] = [
+                {"type": (r[0] or "").replace("ContentType.", ""), "source": r[1], "city": r[2], "time": str(r[3])}
+                for r in conn.execute(text(
+                    "SELECT ctype, source, city, created_at FROM api_usage "
+                    "WHERE endpoint='verify' AND level='red' ORDER BY created_at DESC LIMIT 30"
+                )).fetchall()
+            ]
+    except Exception:
+        pass
+    return out
+
+
+# ---------- VigIA Verified ----------
+
+def save_verified_request(name, category, official_url, contact) -> None:
+    with get_db_connection() as conn:
+        conn.execute(text(
+            "INSERT INTO verified_requests (name, category, official_url, contact) "
+            "VALUES (:n, :c, :u, :ct)"
+        ), {"n": name, "c": category, "u": official_url, "ct": contact})
+        conn.commit()
+
+
+def list_verified_requests() -> list[dict]:
+    with get_db_connection() as conn:
+        rows = conn.execute(text(
+            "SELECT id, name, category, official_url, contact, status, created_at "
+            "FROM verified_requests ORDER BY created_at DESC"
+        )).fetchall()
+    return [
+        {"id": r[0], "name": r[1], "category": r[2], "official_url": r[3],
+         "contact": r[4], "status": r[5], "created_at": str(r[6])}
+        for r in rows
+    ]
+
+
+def approve_verified_request(req_id: int) -> bool:
+    with get_db_connection() as conn:
+        row = conn.execute(text(
+            "SELECT name, category, official_url FROM verified_requests WHERE id = :id"
+        ), {"id": req_id}).fetchone()
+        if not row:
+            return False
+        conn.execute(text(
+            "INSERT INTO official_accounts (name, title, embedding, source_url, verified_by) "
+            "VALUES (:n, :t, '', :u, 'VigIA Verified')"
+        ), {"n": row[0], "t": row[1] or "", "u": row[2] or ""})
+        conn.execute(text("UPDATE verified_requests SET status='approved' WHERE id = :id"), {"id": req_id})
+        conn.commit()
+    return True
+
+
+def reject_verified_request(req_id: int) -> bool:
+    with get_db_connection() as conn:
+        res = conn.execute(text("UPDATE verified_requests SET status='rejected' WHERE id = :id"), {"id": req_id})
+        conn.commit()
+    return res.rowcount > 0
+
+
+def check_verified(name: str) -> dict:
+    try:
+        with get_db_connection() as conn:
+            row = conn.execute(text(
+                "SELECT name, title FROM official_accounts WHERE LOWER(name) = LOWER(:n) LIMIT 1"
+            ), {"n": name}).fetchone()
+        if row:
+            return {"verified": True, "name": row[0], "title": row[1]}
+    except Exception:
+        pass
+    return {"verified": False}
+
+
 def list_reports(limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         rows = conn.execute(text(

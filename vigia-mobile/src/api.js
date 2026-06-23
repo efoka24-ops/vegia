@@ -49,3 +49,15 @@ export async function verify(type, value) {
   if (!res.ok) throw new Error('Erreur ' + res.status);
   return res.json();
 }
+
+export async function sendFeedback({ request_id, level, ctype, correct }) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (Platform.OS !== 'web') headers['X-Client-Id'] = await getClientId();
+    await fetch(`${API_BASE}/feedback`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ request_id, level, ctype, source: 'mobile', correct }),
+    });
+  } catch (_) { /* best effort */ }
+}

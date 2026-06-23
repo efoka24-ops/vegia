@@ -87,7 +87,9 @@ export default function AdminPanel() {
     ['keys', 'Clés API'],
     ['blacklist', 'Liste noire'],
     ['accounts', 'Comptes officiels'],
+    ['verified', 'VigIA Verified'],
     ['reports', 'Signalements'],
+    ['feedback', 'Feedback'],
     ['system', 'Système'],
   ];
 
@@ -109,7 +111,9 @@ export default function AdminPanel() {
         {tab === 'keys' && <Keys api={api} />}
         {tab === 'blacklist' && <Blacklist api={api} />}
         {tab === 'accounts' && <Accounts api={api} />}
+        {tab === 'verified' && <Verified api={api} />}
         {tab === 'reports' && <Reports api={api} />}
+        {tab === 'feedback' && <Feedback api={api} />}
         {tab === 'system' && <System api={api} />}
       </div>
     </main>
@@ -231,6 +235,71 @@ function Identities({ api }) {
                 </td></tr>
               )}
             </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Feedback({ api }) {
+  const { data, err } = useLoad(() => api('/admin/feedback'));
+  if (err) return <div className="admin-error">{err}</div>;
+  if (!data) return <p>Chargement…</p>;
+  return (
+    <div>
+      <div className="admin-cards" style={{ marginBottom: 20 }}>
+        <div className="admin-card"><div className="admin-card-val" style={{ color: '#F2B705' }}>{data.total}</div><div className="admin-card-lbl">Retours reçus</div></div>
+        <div className="admin-card"><div className="admin-card-val" style={{ color: '#4ade80' }}>{data.accuracy == null ? '—' : data.accuracy + '%'}</div><div className="admin-card-lbl">Justesse perçue</div></div>
+        <div className="admin-card"><div className="admin-card-val" style={{ color: '#f87171' }}>{data.incorrect}</div><div className="admin-card-lbl">Verdicts contestés</div></div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <button className="admin-tab" onClick={() => downloadCSV('vigia-feedback.csv',
+          (data.recent || []).map(r => ({ heure: r.time, verdict: r.level, type: cleanType(r.ctype), plateforme: r.source, correct: r.correct, commentaire: r.comment })))}>⬇ Exporter CSV (dataset)</button>
+      </div>
+      <table className="admin-table">
+        <thead><tr><th>Heure</th><th>Verdict</th><th>Type</th><th>Plateforme</th><th>Correct ?</th></tr></thead>
+        <tbody>
+          {(data.recent || []).map((r, i) => (
+            <tr key={i}>
+              <td>{(r.time || '').slice(0, 16).replace('T', ' ')}</td>
+              <td>{r.level || '—'}</td><td>{cleanType(r.ctype)}</td><td>{r.source || '—'}</td>
+              <td style={{ color: r.correct ? '#4ade80' : '#f87171' }}>{r.correct ? '👍 oui' : '👎 non'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="api-note">Ces retours constituent un jeu de données pour entraîner/améliorer les futurs modèles VigIA.</p>
+    </div>
+  );
+}
+
+function Verified({ api }) {
+  const { data, err, reload } = useLoad(() => api('/admin/verified'));
+  const act = async (id, action) => { await api(`/admin/verified/${id}/${action}`, { method: 'POST' }); reload(); };
+  if (err) return <div className="admin-error">{err}</div>;
+  if (!data) return <p>Chargement…</p>;
+  return (
+    <div>
+      <p className="api-note" style={{ marginBottom: 14 }}>
+        Demandes d'institutions pour le badge « VigIA Verified ». Approuver ajoute le compte au registre Vérif-Compte.
+      </p>
+      <table className="admin-table">
+        <thead><tr><th>Nom</th><th>Catégorie</th><th>Site officiel</th><th>Contact</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+          {(data.requests || []).map(r => (
+            <tr key={r.id}>
+              <td>{r.name}</td><td>{r.category || '—'}</td>
+              <td style={{ wordBreak: 'break-all' }}>{r.official_url || '—'}</td>
+              <td>{r.contact || '—'}</td>
+              <td style={{ color: r.status === 'approved' ? '#4ade80' : r.status === 'rejected' ? '#f87171' : '#fbbf24' }}>{r.status}</td>
+              <td>{r.status === 'pending' && (
+                <span style={{ display: 'flex', gap: 6 }}>
+                  <button className="admin-tab" onClick={() => act(r.id, 'approve')}>✓ Approuver</button>
+                  <button className="admin-del" onClick={() => act(r.id, 'reject')}>Rejeter</button>
+                </span>
+              )}</td>
+            </tr>
           ))}
         </tbody>
       </table>

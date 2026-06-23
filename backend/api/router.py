@@ -13,6 +13,7 @@ from api.schemas import (
     ReportRequest, ReportResponse,
     KeyCreateRequest, KeyCreateResponse, UsageResponse,
     SendReportRequest, BlacklistAddRequest, OfficialAccountRequest,
+    FeedbackRequest, VerifiedRequest,
 )
 from modules.media import MediaModule
 from modules.info import InfoModule
@@ -127,6 +128,37 @@ async def send_report_endpoint(request: Request, body: SendReportRequest):
         raise HTTPException(status_code=502, detail=f"Envoi échoué : {e}")
 
 
+@router.post("/feedback")
+@limiter.limit("30/minute")
+async def feedback(request: Request, body: FeedbackRequest, x_client_id: str | None = Header(default=None)):
+    adminmgr.save_feedback(body.request_id, body.level, body.ctype, body.source,
+                           body.correct, body.comment, x_client_id)
+    return {"ok": True}
+
+
+# ---------- Endpoints PUBLICS (sans auth) ----------
+
+@router.get("/public/threat-map")
+@limiter.limit("60/minute")
+async def public_threat_map(request: Request):
+    return adminmgr.get_threat_map()
+
+
+@router.post("/verified/request")
+@limiter.limit("10/minute")
+async def verified_request(request: Request, body: VerifiedRequest):
+    if not body.name.strip():
+        raise HTTPException(status_code=400, detail="Nom requis")
+    adminmgr.save_verified_request(body.name, body.category, body.official_url, body.contact)
+    return {"ok": True}
+
+
+@router.get("/verified/check")
+@limiter.limit("60/minute")
+async def verified_check(request: Request, name: str):
+    return adminmgr.check_verified(name)
+
+
 @router.get("/me", response_model=UsageResponse)
 async def me(auth: dict = Depends(verify_token)):
     return UsageResponse(
@@ -174,6 +206,26 @@ async def admin_users(limit: int = 200):
 @router.get("/admin/users/{uid}", dependencies=[Depends(verify_admin)])
 async def admin_user_detail(uid: str):
     return {"events": adminmgr.user_detail(uid)}
+
+
+@router.get("/admin/feedback", dependencies=[Depends(verify_admin)])
+async def admin_feedback():
+    return adminmgr.get_feedback()
+
+
+@router.get("/admin/verified", dependencies=[Depends(verify_admin)])
+async def admin_verified_list():
+    return {"requests": adminmgr.list_verified_requests()}
+
+
+@router.post("/admin/verified/{req_id}/approve", dependencies=[Depends(verify_admin)])
+async def admin_verified_approve(req_id: int):
+    return {"approved": adminmgr.approve_verified_request(req_id)}
+
+
+@router.post("/admin/verified/{req_id}/reject", dependencies=[Depends(verify_admin)])
+async def admin_verified_reject(req_id: int):
+    return {"rejected": adminmgr.reject_verified_request(req_id)}
 
 
 @router.get("/admin/providers", dependencies=[Depends(verify_admin)])

@@ -43,7 +43,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendEmailReport(message.payload).then(sendResponse);
     return true;
   }
+  if (message.type === 'FEEDBACK') {
+    sendFeedback(message.payload).then(sendResponse);
+    return true;
+  }
 });
+
+// ---------- Boucle de feedback ----------
+
+async function sendFeedback(payload) {
+  try {
+    const { apiBase, clientId } = await getSettings();
+    await fetch(`${apiBase}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId },
+      body: JSON.stringify(payload),
+    });
+    return { ok: true };
+  } catch (_) {
+    return { ok: false };
+  }
+}
 
 // ---------- Vérification principale ----------
 

@@ -3,7 +3,7 @@ import {
   SafeAreaView, ScrollView, View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, StyleSheet, StatusBar, Platform,
 } from 'react-native';
-import { verify } from './src/api';
+import { verify, sendFeedback } from './src/api';
 import { C, levelColor, levelLabel } from './src/theme';
 
 const TYPES = [
@@ -18,12 +18,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [fbSent, setFbSent] = useState(false);
 
   const current = TYPES.find(t => t.key === type);
 
   const onVerify = async () => {
     if (!value.trim()) return;
-    setLoading(true); setError(''); setResult(null);
+    setLoading(true); setError(''); setResult(null); setFbSent(false);
     try {
       const r = await verify(type, value.trim());
       setResult(r);
@@ -93,6 +94,22 @@ export default function App() {
             )}
             {moduleLabel ? <Text style={styles.resultLabel}>{moduleLabel}</Text> : null}
             {result.explanation ? <Text style={styles.resultExpl}>{result.explanation}</Text> : null}
+
+            <View style={styles.fbRow}>
+              {fbSent ? (
+                <Text style={styles.fbThanks}>Merci pour votre retour ✓</Text>
+              ) : (
+                <>
+                  <Text style={styles.fbQ}>Verdict correct ?</Text>
+                  <TouchableOpacity onPress={() => { sendFeedback({ request_id: result.request_id, level: result.level, ctype: type, correct: true }); setFbSent(true); }}>
+                    <Text style={styles.fbBtn}>👍</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { sendFeedback({ request_id: result.request_id, level: result.level, ctype: type, correct: false }); setFbSent(true); }}>
+                    <Text style={styles.fbBtn}>👎</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
         )}
 
@@ -126,5 +143,9 @@ const styles = StyleSheet.create({
   scale: { color: '#7a8f84', fontSize: 11 },
   resultLabel: { color: '#fff', fontSize: 15, fontWeight: '700', marginTop: 12 },
   resultExpl: { color: C.muted, fontSize: 13, marginTop: 8, lineHeight: 19 },
+  fbRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  fbQ: { color: '#cdddd4', fontSize: 13 },
+  fbBtn: { fontSize: 22 },
+  fbThanks: { color: C.green2, fontSize: 13, fontWeight: '700' },
   footer: { color: '#4a7c5f', fontSize: 11, textAlign: 'center', marginTop: 34 },
 });

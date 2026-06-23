@@ -93,3 +93,19 @@ class OfficialAccountRequest(BaseModel):
     name:       str
     title:      Optional[str] = None
     source_url: Optional[str] = None
+
+
+class FeedbackRequest(BaseModel):
+    request_id: Optional[str] = None
+    level:      Optional[str] = None
+    ctype:      Optional[str] = None
+    source:     Optional[str] = None
+    correct:    bool
+    comment:    Optional[str] = None
+
+
+class VerifiedRequest(BaseModel):
+    name:         str
+    category:     Optional[str] = None
+    official_url: Optional[str] = None
+    contact:      Optional[str] = None
