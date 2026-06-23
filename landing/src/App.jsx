@@ -230,7 +230,7 @@ export default function App() {
           <span style={{ color: '#4a7c5f', fontWeight: 700 }}>VigIA</span>
         </a>
         <span>VigIA v0.1.0 · Cameroun · Données locales uniquement</span>
-        <a href="mailto:efoka24@gmail.com">Contact</a>
+        <a href="mailto:infos@trugroup.com">Contact</a>
       </footer>
     </>
   );

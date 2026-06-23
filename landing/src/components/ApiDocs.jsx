@@ -105,7 +105,7 @@ r = httpx.post(
 print(r.json()["score"], r.json()["level"])`}</Code>
 
         <h2 className="api-h2">Obtenir une clé partenaire</h2>
-        <p>Écrivez-nous à <a href="mailto:emm.foka@gmail.com">emm.foka@gmail.com</a> avec le nom
+        <p>Écrivez-nous à <a href="mailto:infos@trugroup.com">infos@trugroup.com</a> avec le nom
           de votre projet et votre cas d'usage. Nous vous fournissons une clé <code>vig_…</code> avec
           un quota adapté.</p>
 
