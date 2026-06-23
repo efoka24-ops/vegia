@@ -1,7 +1,7 @@
 import json
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, Request, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import verify_token, verify_admin
@@ -19,6 +19,7 @@ from modules.media import MediaModule
 from modules.info import InfoModule
 from modules.link import LinkModule
 from modules.account import AccountModule
+from modules.audio import AudioModule
 from db.blacklist import get_blacklist_entries, add_to_blacklist
 from db import admin as adminmgr
 from db.session import get_db_connection
@@ -31,6 +32,7 @@ _media   = MediaModule()
 _info    = InfoModule()
 _link    = LinkModule()
 _account = AccountModule()
+_audio   = AudioModule()
 
 
 @router.get("/health")
@@ -72,6 +74,40 @@ async def verify(
     background_tasks.add_task(
         keymgr.record_event, auth["token"], "verify",
         ip, x_client_id, body.source, body.type.value, level, ua,
+    )
+
+    return VerifyResponse(
+        request_id=str(uuid.uuid4()),
+        score=score,
+        level=level,
+        modules=modules,
+        explanation=_build_explanation(modules, level),
+        sources=_collect_sources(modules),
+    )
+
+
+@router.post("/verify-audio", response_model=VerifyResponse)
+@limiter.limit("10/minute")
+async def verify_audio(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    auth: dict = Depends(verify_token),
+    x_client_id: str | None = Header(default=None),
+):
+    data = await file.read()
+    if len(data) > 12_000_000:
+        raise HTTPException(status_code=413, detail="Fichier audio trop volumineux (max 12 Mo)")
+
+    modules = {"audio": await _audio.analyze(data, file.filename, file.content_type)}
+    score = _aggregate_score(modules)
+    level = _score_to_level(score)
+
+    fwd = request.headers.get("x-forwarded-for", "")
+    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+    background_tasks.add_task(
+        keymgr.record_event, auth["token"], "verify",
+        ip, x_client_id, "mobile", "audio", level, request.headers.get("user-agent"),
     )
 
     return VerifyResponse(

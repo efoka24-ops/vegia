@@ -14,10 +14,13 @@ npx expo start
 - Scanne le QR code avec l'app **Expo Go** (Android/iOS) pour tester sur ton téléphone.
 - Ou `npm run android` / `npm run ios` (émulateur).
 
-## État actuel (v0.1 — MVP)
+## État actuel (v0.2)
 
-✅ Écran de vérification **Texte / Lien / Compte** branché sur l'API Railway
+✅ Logo VigIA (icône, icône adaptative Android, splash)
+✅ Vérification **Texte / Lien / Compte** branchée sur l'API Railway
+✅ **Vérif-Voix** : enregistrement micro (`expo-av`) → détection de voix clonée (`/verify-audio`)
 ✅ Verdict coloré + indice de risque explicite (0 % sûr → 100 % suspect)
+✅ Boucle de **feedback** (👍/👎) sous chaque résultat
 ✅ Identifiant d'installation anonyme (`X-Client-Id`) → remonte dans le back-office (source `mobile`)
 
 ## Backend

@@ -50,6 +50,19 @@ export async function verify(type, value) {
   return res.json();
 }
 
+// Vérification audio : upload du clip enregistré (multipart) → /verify-audio
+export async function verifyAudio(uri) {
+  const headers = { Authorization: 'Bearer public' };
+  if (Platform.OS !== 'web') headers['X-Client-Id'] = await getClientId();
+
+  const form = new FormData();
+  form.append('file', { uri, name: 'audio.m4a', type: 'audio/m4a' });
+
+  const res = await fetch(`${API_BASE}/verify-audio`, { method: 'POST', headers, body: form });
+  if (!res.ok) throw new Error('Erreur ' + res.status);
+  return res.json();
+}
+
 export async function sendFeedback({ request_id, level, ctype, correct }) {
   try {
     const headers = { 'Content-Type': 'application/json' };

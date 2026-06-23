@@ -13,12 +13,19 @@
       "backgroundColor": "#11201A"
     },
     "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      ["expo-av", { "microphonePermission": "VigIA utilise le micro pour analyser une voix potentiellement clonée." }]
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "cm.vigia.app"
+      "bundleIdentifier": "cm.vigia.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "VigIA utilise le micro pour analyser une voix potentiellement clonée."
+      }
     },
     "android": {
       "package": "cm.vigia.app",
+      "permissions": ["RECORD_AUDIO"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A5C42"

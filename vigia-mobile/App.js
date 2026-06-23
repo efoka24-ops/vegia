@@ -3,13 +3,15 @@ import {
   SafeAreaView, ScrollView, View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, StyleSheet, StatusBar, Platform,
 } from 'react-native';
-import { verify, sendFeedback } from './src/api';
+import { Audio } from 'expo-av';
+import { verify, verifyAudio, sendFeedback } from './src/api';
 import { C, levelColor, levelLabel } from './src/theme';
 
 const TYPES = [
-  { key: 'text', label: '📰  Texte', placeholder: 'Collez un message ou une information à vérifier…', multiline: true },
-  { key: 'url', label: '🔗  Lien', placeholder: 'https://exemple.com/...', multiline: false },
-  { key: 'account', label: '👤  Compte', placeholder: "Nom du compte / profil à vérifier", multiline: false },
+  { key: 'text', label: '📰 Texte', placeholder: 'Collez un message ou une information à vérifier…', multiline: true },
+  { key: 'url', label: '🔗 Lien', placeholder: 'https://exemple.com/...', multiline: false },
+  { key: 'account', label: '👤 Compte', placeholder: 'Nom du compte / profil à vérifier', multiline: false },
+  { key: 'audio', label: '🎙️ Voix' },
 ];
 
 export default function App() {
@@ -19,6 +21,8 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [fbSent, setFbSent] = useState(false);
+  const [recording, setRecording] = useState(null);
+  const [recPhase, setRecPhase] = useState('idle'); // idle | recording | analyzing
 
   const current = TYPES.find(t => t.key === type);
 
@@ -33,6 +37,31 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const startRec = async () => {
+    try {
+      setError(''); setResult(null); setFbSent(false);
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) { setError('Permission micro refusée.'); return; }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording: rec } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      setRecording(rec); setRecPhase('recording');
+    } catch (e) { setError("Enregistrement impossible sur cet appareil."); }
+  };
+
+  const stopRec = async () => {
+    if (!recording) return;
+    setRecPhase('analyzing');
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+      const r = await verifyAudio(uri);
+      setResult(r);
+    } catch (e) {
+      setError("Analyse audio échouée.");
+    } finally { setRecPhase('idle'); }
   };
 
   const risk = result && result.score != null ? Math.round(result.score * 100) : null;
@@ -62,22 +91,40 @@ export default function App() {
           ))}
         </View>
 
-        <TextInput
-          style={[styles.input, current.multiline && styles.inputMultiline]}
-          placeholder={current.placeholder}
-          placeholderTextColor="#5a7a6b"
-          value={value}
-          onChangeText={setValue}
-          multiline={current.multiline}
-          autoCapitalize={type === 'url' ? 'none' : 'sentences'}
-          autoCorrect={type !== 'url'}
-        />
-
-        <TouchableOpacity style={styles.btn} onPress={onVerify} disabled={loading}>
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.btnText}>🛡  Vérifier avec VigIA</Text>}
-        </TouchableOpacity>
+        {type === 'audio' ? (
+          <View style={styles.audioBox}>
+            <Text style={styles.audioHint}>Enregistre un extrait de la voix suspecte (5–15 s), puis analyse.</Text>
+            {recPhase === 'recording' ? (
+              <TouchableOpacity style={[styles.btn, { backgroundColor: C.red }]} onPress={stopRec}>
+                <Text style={styles.btnText}>⏹  Arrêter & analyser</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.btn} onPress={startRec} disabled={recPhase === 'analyzing'}>
+                {recPhase === 'analyzing'
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.btnText}>🎙  Enregistrer la voix</Text>}
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <>
+            <TextInput
+              style={[styles.input, current.multiline && styles.inputMultiline]}
+              placeholder={current.placeholder}
+              placeholderTextColor="#5a7a6b"
+              value={value}
+              onChangeText={setValue}
+              multiline={current.multiline}
+              autoCapitalize={type === 'url' ? 'none' : 'sentences'}
+              autoCorrect={type !== 'url'}
+            />
+            <TouchableOpacity style={styles.btn} onPress={onVerify} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.btnText}>🛡  Vérifier avec VigIA</Text>}
+            </TouchableOpacity>
+          </>
+        )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -134,6 +181,8 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#fff' },
   input: { backgroundColor: '#0c1813', borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 15, color: '#fff', fontSize: 15 },
   inputMultiline: { minHeight: 120, textAlignVertical: 'top' },
+  audioBox: { marginTop: 4 },
+  audioHint: { color: C.muted, fontSize: 13, textAlign: 'center', marginBottom: 14, lineHeight: 19 },
   btn: { backgroundColor: C.green, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 16 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   error: { color: '#f87171', marginTop: 16, textAlign: 'center' },
