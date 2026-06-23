@@ -1,23 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE = 'https://vegia-production.up.railway.app/api/v1';
 const TOKEN_KEY = 'vigia_admin_token';
+const API_KEY = 'vigia_admin_api';
+
+function defaultApiBase() {
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:8000/api/v1';
+  }
+  return 'https://vegia-production.up.railway.app/api/v1';
+}
 
 export default function AdminPanel() {
   const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) || '');
+  const [apiBase, setApiBase] = useState(() => sessionStorage.getItem(API_KEY) || defaultApiBase());
   const [authed, setAuthed] = useState(false);
   const [tab, setTab] = useState('stats');
   const [error, setError] = useState('');
 
   const api = useCallback(async (path, opts = {}) => {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(`${apiBase}${path}`, {
       ...opts,
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
     });
     if (res.status === 401 || res.status === 403) { throw new Error('Token administrateur invalide'); }
     if (!res.ok) throw new Error(`Erreur ${res.status}`);
     return res.status === 204 ? null : res.json();
-  }, [token]);
+  }, [token, apiBase]);
 
   const login = async (e) => {
     e.preventDefault();
@@ -25,6 +34,7 @@ export default function AdminPanel() {
     try {
       await api('/admin/stats');
       sessionStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.setItem(API_KEY, apiBase);
       setAuthed(true);
     } catch (err) {
       setError(err.message + ' (le backend est-il en ligne ?)');
@@ -38,7 +48,9 @@ export default function AdminPanel() {
       <main className="admin">
         <form className="admin-login" onSubmit={login}>
           <h1>Administration VigIA</h1>
-          <p>Entrez le jeton administrateur (<code>ADMIN_TOKEN</code>).</p>
+          <p>URL de l'API et jeton administrateur (<code>ADMIN_TOKEN</code>).</p>
+          <input type="text" placeholder="URL API (ex. http://localhost:8000/api/v1)" value={apiBase}
+            onChange={e => setApiBase(e.target.value)} />
           <input type="password" placeholder="ADMIN_TOKEN" value={token}
             onChange={e => setToken(e.target.value)} autoFocus />
           <button className="btn btn-primary btn-md" type="submit">Se connecter</button>
