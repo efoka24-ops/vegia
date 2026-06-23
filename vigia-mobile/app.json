@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "VigIA",
+    "slug": "vigia-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#11201A",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#11201A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "cm.vigia.app"
+    },
+    "android": {
+      "package": "cm.vigia.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
