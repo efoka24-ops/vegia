@@ -279,6 +279,14 @@ footer a:hover { color: #7ab89a; }
 .admin-del { background: rgba(200,16,46,.15); border: 1px solid rgba(200,16,46,.4); color: #f87171;
   border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; }
 
+.admin-grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: start; }
+.admin-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px; }
+.admin-bar-lbl { width: 150px; color: #c9d6cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-bar-track { flex: 1; height: 10px; background: rgba(255,255,255,.06); border-radius: 99px; overflow: hidden; }
+.admin-bar-fill { display: block; height: 100%; background: linear-gradient(90deg,#0A5C42,#22c55e); border-radius: 99px; }
+.admin-bar-num { width: 40px; text-align: right; color: #7ab89a; font-weight: 700; }
+@media (max-width: 780px) { .admin-grid2 { grid-template-columns: 1fr; } }
+
 @media (max-width: 780px) {
   nav { padding: 14px 20px; }
   .nav-links a:not(.nav-cta) { display: none; }

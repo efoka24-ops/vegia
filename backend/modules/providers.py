@@ -15,6 +15,39 @@ import httpx
 
 TIMEOUT = 10.0
 
+# --------------------------------------------------------------------------- #
+# Géolocalisation IP (analytique) — ip-api.com (gratuit, sans clé)
+# --------------------------------------------------------------------------- #
+_geo_cache: dict[str, dict] = {}
+
+
+def resolve_geo(ip: Optional[str]) -> dict:
+    """Renvoie {country, country_code, city} pour une IP publique, {} sinon. Mis en cache."""
+    if not ip:
+        return {}
+    if ip in ("127.0.0.1", "::1") or ip.startswith(("10.", "192.168.", "172.", "100.64.", "fc", "fe80")):
+        return {}
+    if ip in _geo_cache:
+        return _geo_cache[ip]
+    geo: dict = {}
+    try:
+        with httpx.Client(timeout=4.0) as client:
+            resp = client.get(
+                f"http://ip-api.com/json/{ip}",
+                params={"fields": "status,country,countryCode,city"},
+            )
+        data = resp.json()
+        if data.get("status") == "success":
+            geo = {
+                "country": data.get("country"),
+                "country_code": data.get("countryCode"),
+                "city": data.get("city"),
+            }
+    except Exception:
+        geo = {}
+    _geo_cache[ip] = geo
+    return geo
+
 
 # --------------------------------------------------------------------------- #
 # Vérif-Lien — Google Safe Browsing v4

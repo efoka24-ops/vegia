@@ -51,6 +51,7 @@ export default function AdminPanel() {
 
   const TABS = [
     ['stats', 'Tableau de bord'],
+    ['users', 'Utilisateurs'],
     ['keys', 'Clés API'],
     ['blacklist', 'Liste noire'],
     ['accounts', 'Comptes officiels'],
@@ -70,6 +71,7 @@ export default function AdminPanel() {
       </div>
       <div className="admin-body">
         {tab === 'stats' && <Stats api={api} />}
+        {tab === 'users' && <Users api={api} />}
         {tab === 'keys' && <Keys api={api} />}
         {tab === 'blacklist' && <Blacklist api={api} />}
         {tab === 'accounts' && <Accounts api={api} />}
@@ -108,6 +110,75 @@ function Stats({ api }) {
           <div className="admin-card-lbl">{l}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+const PLATFORM = {
+  facebook: 'Facebook', twitter: 'X / Twitter', whatsapp: 'WhatsApp', linkedin: 'LinkedIn',
+  instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', reddit: 'Reddit',
+  telegram: 'Telegram', threads: 'Threads',
+};
+
+function flag(code) {
+  if (!code || code.length !== 2) return '🌍';
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
+
+function Users({ api }) {
+  const { data, err } = useLoad(() => api('/admin/analytics'));
+  if (err) return <div className="admin-error">{err}</div>;
+  if (!data) return <p>Chargement…</p>;
+  const max = Math.max(1, ...(data.by_country || []).map(c => c.count));
+  return (
+    <div>
+      <div className="admin-cards" style={{ marginBottom: 24 }}>
+        <div className="admin-card"><div className="admin-card-val" style={{ color: '#4ade80' }}>{data.unique_users}</div><div className="admin-card-lbl">Utilisateurs uniques</div></div>
+        <div className="admin-card"><div className="admin-card-val" style={{ color: '#F2B705' }}>{data.total_verifs}</div><div className="admin-card-lbl">Vérifications totales</div></div>
+      </div>
+      <div className="admin-grid2">
+        <div>
+          <h3 className="api-h3">Localisation géographique</h3>
+          {(data.by_country || []).length === 0 && <p>Aucune donnée pour l'instant.</p>}
+          {(data.by_country || []).map((c, i) => (
+            <div className="admin-bar-row" key={i}>
+              <span className="admin-bar-lbl">{flag(c.code)} {c.country}</span>
+              <span className="admin-bar-track"><span className="admin-bar-fill" style={{ width: `${(c.count / max) * 100}%` }} /></span>
+              <span className="admin-bar-num">{c.count}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <h3 className="api-h3">Plateformes</h3>
+          <table className="admin-table"><tbody>
+            {(data.by_platform || []).map((p, i) => (
+              <tr key={i}><td>{PLATFORM[p.source] || p.source}</td><td>{p.count}</td></tr>
+            ))}
+          </tbody></table>
+          <h3 className="api-h3">Verdicts</h3>
+          <table className="admin-table"><tbody>
+            {(data.by_level || []).map((l, i) => (
+              <tr key={i}><td>{l.level}</td><td>{l.count}</td></tr>
+            ))}
+          </tbody></table>
+        </div>
+      </div>
+      <h3 className="api-h3" style={{ marginTop: 24 }}>Activité récente</h3>
+      <table className="admin-table">
+        <thead><tr><th>Heure</th><th>Lieu</th><th>Plateforme</th><th>Type</th><th>Verdict</th></tr></thead>
+        <tbody>
+          {(data.recent || []).map((r, i) => (
+            <tr key={i}>
+              <td>{(r.time || '').slice(0, 16).replace('T', ' ')}</td>
+              <td>{[r.city, r.country].filter(Boolean).join(', ') || '—'}</td>
+              <td>{PLATFORM[r.source] || r.source || '—'}</td>
+              <td>{r.ctype || '—'}</td>
+              <td>{r.level || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="api-note">Données agrégées et anonymisées (identifiant d'installation aléatoire + géoloc approximative par IP). Aucune donnée personnelle de compte n'est collectée.</p>
     </div>
   );
 }

@@ -92,3 +92,10 @@ def _create_tables():
         conn.execute(text(
             "CREATE INDEX IF NOT EXISTS idx_api_usage_key_time ON api_usage (api_key, created_at)"
         ))
+        # Colonnes analytiques (idempotent) — suivi d'usage / géolocalisation
+        for col, typ in [
+            ("client_id", "TEXT"), ("ip", "TEXT"), ("country", "TEXT"),
+            ("country_code", "TEXT"), ("city", "TEXT"),
+            ("source", "TEXT"), ("ctype", "TEXT"), ("level", "TEXT"),
+        ]:
+            conn.execute(text(f"ALTER TABLE api_usage ADD COLUMN IF NOT EXISTS {col} {typ}"))

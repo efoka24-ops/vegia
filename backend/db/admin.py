@@ -25,6 +25,49 @@ def get_stats() -> dict:
     return out
 
 
+def get_analytics() -> dict:
+    out = {"unique_users": 0, "total_verifs": 0, "by_country": [], "by_platform": [], "by_level": [], "recent": []}
+    try:
+        with get_db_connection() as conn:
+            out["unique_users"] = conn.execute(text(
+                "SELECT COUNT(DISTINCT COALESCE(client_id, ip)) FROM api_usage WHERE endpoint = 'verify'"
+            )).scalar() or 0
+            out["total_verifs"] = conn.execute(text(
+                "SELECT COUNT(*) FROM api_usage WHERE endpoint = 'verify'"
+            )).scalar() or 0
+            out["by_country"] = [
+                {"country": r[0] or "Inconnu", "code": r[1], "count": r[2]}
+                for r in conn.execute(text(
+                    "SELECT country, country_code, COUNT(*) c FROM api_usage WHERE endpoint='verify' "
+                    "GROUP BY country, country_code ORDER BY c DESC LIMIT 30"
+                )).fetchall()
+            ]
+            out["by_platform"] = [
+                {"source": r[0] or "inconnu", "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT source, COUNT(*) c FROM api_usage WHERE endpoint='verify' "
+                    "GROUP BY source ORDER BY c DESC"
+                )).fetchall()
+            ]
+            out["by_level"] = [
+                {"level": r[0] or "—", "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT level, COUNT(*) c FROM api_usage WHERE endpoint='verify' "
+                    "GROUP BY level ORDER BY c DESC"
+                )).fetchall()
+            ]
+            out["recent"] = [
+                {"time": str(r[0]), "country": r[1], "city": r[2], "source": r[3], "ctype": r[4], "level": r[5]}
+                for r in conn.execute(text(
+                    "SELECT created_at, country, city, source, ctype, level FROM api_usage "
+                    "WHERE endpoint='verify' ORDER BY created_at DESC LIMIT 50"
+                )).fetchall()
+            ]
+    except Exception:
+        pass
+    return out
+
+
 def list_reports(limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         rows = conn.execute(text(

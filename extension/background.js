@@ -8,11 +8,20 @@ const DEFAULT_API_BASE = 'https://api.vigia.cm/api/v1';
 //   token    : 'public' (défaut) ou une clé partenaire 'vig_...'
 //   demoMode : true pour forcer la simulation locale (sans backend)
 async function getSettings() {
-  const { apiBase, token, demoMode } = await chrome.storage.local.get(['apiBase', 'token', 'demoMode']);
+  const { apiBase, token, demoMode, clientId } =
+    await chrome.storage.local.get(['apiBase', 'token', 'demoMode', 'clientId']);
+  let cid = clientId;
+  if (!cid) {
+    cid = (self.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+    await chrome.storage.local.set({ clientId: cid });
+  }
   return {
     apiBase: apiBase || DEFAULT_API_BASE,
     token: token || 'public',
     demoMode: demoMode === true,
+    clientId: cid,
   };
 }
 
@@ -67,7 +76,8 @@ async function handleVerify(payload) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${settings.token}`
+        'Authorization': `Bearer ${settings.token}`,
+        'X-Client-Id': settings.clientId
       },
       body: JSON.stringify(body)
     });

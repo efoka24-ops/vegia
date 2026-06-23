@@ -1,7 +1,7 @@
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import verify_token, verify_admin
@@ -39,7 +39,13 @@ async def health():
 
 @router.post("/verify", response_model=VerifyResponse)
 @limiter.limit("30/minute")
-async def verify(request: Request, body: VerifyRequest, auth: dict = Depends(verify_token)):
+async def verify(
+    request: Request,
+    body: VerifyRequest,
+    background_tasks: BackgroundTasks,
+    auth: dict = Depends(verify_token),
+    x_client_id: str | None = Header(default=None),
+):
     modules: dict = {}
 
     match body.type:
@@ -55,10 +61,16 @@ async def verify(request: Request, body: VerifyRequest, auth: dict = Depends(ver
                 body.content.profile_name or "",
             )
 
-    keymgr.log_usage(auth["token"], "verify")
-
     score = _aggregate_score(modules)
     level = _score_to_level(score)
+
+    # Journalisation enrichie en tâche de fond (géoloc IP non bloquante)
+    fwd = request.headers.get("x-forwarded-for", "")
+    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+    background_tasks.add_task(
+        keymgr.record_event, auth["token"], "verify",
+        ip, x_client_id, body.source, str(body.type), level,
+    )
 
     return VerifyResponse(
         request_id=str(uuid.uuid4()),
@@ -146,6 +158,11 @@ async def revoke_key(key: str):
 @router.get("/admin/stats", dependencies=[Depends(verify_admin)])
 async def admin_stats():
     return adminmgr.get_stats()
+
+
+@router.get("/admin/analytics", dependencies=[Depends(verify_admin)])
+async def admin_analytics():
+    return adminmgr.get_analytics()
 
 
 @router.get("/admin/reports", dependencies=[Depends(verify_admin)])

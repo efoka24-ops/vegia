@@ -107,12 +107,38 @@ def revoke_key(key: str) -> bool:
 
 
 def log_usage(token: str, endpoint: str) -> None:
-    """Journalise un appel (best-effort, ne lève jamais)."""
+    """Journalise un appel simple (best-effort, ne lève jamais)."""
+    record_event(token, endpoint)
+
+
+def record_event(token: str, endpoint: str, ip: str | None = None,
+                 client_id: str | None = None, source: str | None = None,
+                 ctype: str | None = None, level: str | None = None) -> None:
+    """Journalise un événement d'usage enrichi (IP, géoloc, plateforme, verdict).
+
+    Best-effort : ne lève jamais. Conçu pour être exécuté en tâche de fond
+    (la résolution géo peut prendre quelques centaines de ms).
+    """
+    geo = {}
+    if ip:
+        try:
+            from modules.providers import resolve_geo
+            geo = resolve_geo(ip)
+        except Exception:
+            geo = {}
     try:
         with get_db_connection() as conn:
             conn.execute(
-                text("INSERT INTO api_usage (api_key, endpoint) VALUES (:k, :e)"),
-                {"k": token, "e": endpoint},
+                text(
+                    "INSERT INTO api_usage "
+                    "(api_key, endpoint, client_id, ip, country, country_code, city, source, ctype, level) "
+                    "VALUES (:k, :e, :cid, :ip, :country, :cc, :city, :src, :ct, :lvl)"
+                ),
+                {
+                    "k": token, "e": endpoint, "cid": client_id, "ip": ip,
+                    "country": geo.get("country"), "cc": geo.get("country_code"),
+                    "city": geo.get("city"), "src": source, "ct": ctype, "lvl": level,
+                },
             )
             conn.commit()
     except Exception:
