@@ -68,6 +68,59 @@ def get_analytics() -> dict:
     return out
 
 
+def list_users(limit: int = 200) -> list[dict]:
+    """Un enregistrement par utilisateur (identifiant d'installation), avec détails."""
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(text(
+                """
+                SELECT
+                    COALESCE(client_id, ip)              AS uid,
+                    MIN(created_at)                       AS first_seen,
+                    MAX(created_at)                       AS last_seen,
+                    COUNT(*)                              AS verifs,
+                    COUNT(*) FILTER (WHERE level='red')   AS alerts,
+                    MAX(country)                          AS country,
+                    MAX(country_code)                     AS country_code,
+                    MAX(city)                             AS city,
+                    MAX(ip)                               AS ip,
+                    MAX(user_agent)                       AS user_agent,
+                    STRING_AGG(DISTINCT source, ', ')     AS platforms
+                FROM api_usage
+                WHERE endpoint = 'verify' AND COALESCE(client_id, ip) IS NOT NULL
+                GROUP BY COALESCE(client_id, ip)
+                ORDER BY last_seen DESC
+                LIMIT :l
+                """
+            ), {"l": limit}).fetchall()
+        return [
+            {
+                "uid": r[0], "first_seen": str(r[1]), "last_seen": str(r[2]),
+                "verifs": r[3], "alerts": r[4], "country": r[5], "country_code": r[6],
+                "city": r[7], "ip": r[8], "user_agent": r[9], "platforms": r[10],
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
+def user_detail(uid: str, limit: int = 50) -> list[dict]:
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(text(
+                "SELECT created_at, source, ctype, level, city, country FROM api_usage "
+                "WHERE endpoint='verify' AND COALESCE(client_id, ip) = :u "
+                "ORDER BY created_at DESC LIMIT :l"
+            ), {"u": uid, "l": limit}).fetchall()
+        return [
+            {"time": str(r[0]), "source": r[1], "ctype": r[2], "level": r[3], "city": r[4], "country": r[5]}
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
 def list_reports(limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         rows = conn.execute(text(

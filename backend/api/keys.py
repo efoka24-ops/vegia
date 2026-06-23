@@ -113,7 +113,8 @@ def log_usage(token: str, endpoint: str) -> None:
 
 def record_event(token: str, endpoint: str, ip: str | None = None,
                  client_id: str | None = None, source: str | None = None,
-                 ctype: str | None = None, level: str | None = None) -> None:
+                 ctype: str | None = None, level: str | None = None,
+                 user_agent: str | None = None) -> None:
     """Journalise un événement d'usage enrichi (IP, géoloc, plateforme, verdict).
 
     Best-effort : ne lève jamais. Conçu pour être exécuté en tâche de fond
@@ -131,13 +132,14 @@ def record_event(token: str, endpoint: str, ip: str | None = None,
             conn.execute(
                 text(
                     "INSERT INTO api_usage "
-                    "(api_key, endpoint, client_id, ip, country, country_code, city, source, ctype, level) "
-                    "VALUES (:k, :e, :cid, :ip, :country, :cc, :city, :src, :ct, :lvl)"
+                    "(api_key, endpoint, client_id, ip, country, country_code, city, source, ctype, level, user_agent) "
+                    "VALUES (:k, :e, :cid, :ip, :country, :cc, :city, :src, :ct, :lvl, :ua)"
                 ),
                 {
                     "k": token, "e": endpoint, "cid": client_id, "ip": ip,
                     "country": geo.get("country"), "cc": geo.get("country_code"),
                     "city": geo.get("city"), "src": source, "ct": ctype, "lvl": level,
+                    "ua": (user_agent or "")[:300],
                 },
             )
             conn.commit()

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 
 const TOKEN_KEY = 'vigia_admin_token';
 const API_KEY = 'vigia_admin_api';
@@ -63,11 +63,13 @@ export default function AdminPanel() {
 
   const TABS = [
     ['stats', 'Tableau de bord'],
+    ['analytics', 'Analytique'],
     ['users', 'Utilisateurs'],
     ['keys', 'Clés API'],
     ['blacklist', 'Liste noire'],
     ['accounts', 'Comptes officiels'],
     ['reports', 'Signalements'],
+    ['system', 'Système'],
   ];
 
   return (
@@ -83,11 +85,13 @@ export default function AdminPanel() {
       </div>
       <div className="admin-body">
         {tab === 'stats' && <Stats api={api} />}
-        {tab === 'users' && <Users api={api} />}
+        {tab === 'analytics' && <Analytics api={api} />}
+        {tab === 'users' && <Identities api={api} />}
         {tab === 'keys' && <Keys api={api} />}
         {tab === 'blacklist' && <Blacklist api={api} />}
         {tab === 'accounts' && <Accounts api={api} />}
         {tab === 'reports' && <Reports api={api} />}
+        {tab === 'system' && <System api={api} />}
       </div>
     </main>
   );
@@ -137,7 +141,110 @@ function flag(code) {
   return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
 
-function Users({ api }) {
+function uaShort(ua) {
+  if (!ua) return '—';
+  let os = /Windows/.test(ua) ? 'Windows' : /Mac OS|Macintosh/.test(ua) ? 'macOS'
+    : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
+  let br = /Edg\//.test(ua) ? 'Edge' : /OPR\/|Opera/.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
+  return [br, os].filter(Boolean).join(' · ') || 'inconnu';
+}
+
+function Identities({ api }) {
+  const { data, err } = useLoad(() => api('/admin/users'));
+  const [open, setOpen] = useState(null);
+  const [detail, setDetail] = useState({});
+
+  const toggle = async (uid) => {
+    if (open === uid) { setOpen(null); return; }
+    setOpen(uid);
+    if (!detail[uid]) {
+      try {
+        const d = await api(`/admin/users/${encodeURIComponent(uid)}`);
+        setDetail(prev => ({ ...prev, [uid]: d.events || [] }));
+      } catch { /* ignore */ }
+    }
+  };
+
+  if (err) return <div className="admin-error">{err}</div>;
+  if (!data) return <p>Chargement…</p>;
+  const users = data.users || [];
+
+  return (
+    <div>
+      <p className="api-note" style={{ marginBottom: 14 }}>
+        Chaque utilisateur est identifié par un <strong>identifiant d'installation anonyme</strong>
+        (aucune donnée de compte personnelle). {users.length} utilisateur(s).
+      </p>
+      <table className="admin-table">
+        <thead><tr>
+          <th>Utilisateur</th><th>Localisation</th><th>Navigateur</th>
+          <th>Plateformes</th><th>Vérifs</th><th>Alertes</th><th>Dernière activité</th>
+        </tr></thead>
+        <tbody>
+          {users.map((u) => (
+            <Fragment key={u.uid}>
+              <tr onClick={() => toggle(u.uid)} style={{ cursor: 'pointer' }}>
+                <td><code>{(u.uid || '').slice(0, 12)}…</code></td>
+                <td>{flag(u.country_code)} {[u.city, u.country].filter(Boolean).join(', ') || '—'}</td>
+                <td>{uaShort(u.user_agent)}</td>
+                <td>{u.platforms || '—'}</td>
+                <td>{u.verifs}</td>
+                <td style={{ color: u.alerts > 0 ? '#f87171' : '#94a3b8' }}>{u.alerts}</td>
+                <td>{(u.last_seen || '').slice(0, 16).replace('T', ' ')}</td>
+              </tr>
+              {open === u.uid && (
+                <tr><td colSpan={7} style={{ background: 'rgba(255,255,255,.02)' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>
+                    Première activité : {(u.first_seen || '').slice(0, 16).replace('T', ' ')} · IP : {u.ip || '—'}
+                  </div>
+                  {(detail[u.uid] || []).map((e, i) => (
+                    <div key={i} style={{ fontSize: 12, padding: '2px 0', color: '#c9d6cf' }}>
+                      {(e.time || '').slice(0, 16).replace('T', ' ')} · {e.source || '—'} · {e.ctype || '—'} ·
+                      <span style={{ color: e.level === 'red' ? '#f87171' : e.level === 'orange' ? '#fbbf24' : '#4ade80' }}> {e.level || '—'}</span>
+                    </div>
+                  ))}
+                  {(detail[u.uid] || []).length === 0 && <div style={{ fontSize: 12, color: '#94a3b8' }}>Chargement…</div>}
+                </td></tr>
+              )}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function System({ api }) {
+  const { data, err } = useLoad(() => api('/admin/providers'));
+  if (err) return <div className="admin-error">{err}</div>;
+  if (!data) return <p>Chargement…</p>;
+  const labels = {
+    anthropic: 'Claude (Vérif-Info)', safe_browsing: 'Google Safe Browsing (Vérif-Lien)',
+    sightengine: 'Sightengine (Vérif-Média)', smtp: 'Email SMTP', database: 'PostgreSQL',
+  };
+  return (
+    <div>
+      <h3 className="api-h3">Fournisseurs configurés</h3>
+      <table className="admin-table">
+        <thead><tr><th>Service</th><th>Statut</th></tr></thead>
+        <tbody>
+          {Object.entries(data.providers || {}).map(([k, v]) => (
+            <tr key={k}>
+              <td>{labels[k] || k}</td>
+              <td style={{ color: v ? '#4ade80' : '#94a3b8' }}>{v ? '✓ actif' : '○ non configuré (repli heuristique)'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p style={{ marginTop: 14, color: '#7ab89a', fontSize: 13 }}>
+        Modèle IA : <code>{data.model}</code> · Version API : <code>{data.version}</code>
+      </p>
+    </div>
+  );
+}
+
+function Analytics({ api }) {
   const { data, err } = useLoad(() => api('/admin/analytics'));
   if (err) return <div className="admin-error">{err}</div>;
   if (!data) return <p>Chargement…</p>;

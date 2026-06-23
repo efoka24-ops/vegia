@@ -67,9 +67,10 @@ async def verify(
     # Journalisation enrichie en tâche de fond (géoloc IP non bloquante)
     fwd = request.headers.get("x-forwarded-for", "")
     ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+    ua = request.headers.get("user-agent")
     background_tasks.add_task(
         keymgr.record_event, auth["token"], "verify",
-        ip, x_client_id, body.source, body.type.value, level,
+        ip, x_client_id, body.source, body.type.value, level, ua,
     )
 
     return VerifyResponse(
@@ -163,6 +164,36 @@ async def admin_stats():
 @router.get("/admin/analytics", dependencies=[Depends(verify_admin)])
 async def admin_analytics():
     return adminmgr.get_analytics()
+
+
+@router.get("/admin/users", dependencies=[Depends(verify_admin)])
+async def admin_users(limit: int = 200):
+    return {"users": adminmgr.list_users(min(limit, 1000))}
+
+
+@router.get("/admin/users/{uid}", dependencies=[Depends(verify_admin)])
+async def admin_user_detail(uid: str):
+    return {"events": adminmgr.user_detail(uid)}
+
+
+@router.get("/admin/providers", dependencies=[Depends(verify_admin)])
+async def admin_providers():
+    import os
+
+    def on(*keys):
+        return all(bool(os.getenv(k)) for k in keys)
+
+    return {
+        "providers": {
+            "anthropic":      on("ANTHROPIC_API_KEY"),
+            "safe_browsing":  on("GOOGLE_SAFE_BROWSING_KEY"),
+            "sightengine":    on("SIGHTENGINE_USER", "SIGHTENGINE_SECRET"),
+            "smtp":           on("SMTP_HOST", "SMTP_USER", "SMTP_PASS"),
+            "database":       on("DATABASE_URL"),
+        },
+        "model": os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
+        "version": "1.0.0",
+    }
 
 
 @router.get("/admin/reports", dependencies=[Depends(verify_admin)])

@@ -97,5 +97,6 @@ def _create_tables():
             ("client_id", "TEXT"), ("ip", "TEXT"), ("country", "TEXT"),
             ("country_code", "TEXT"), ("city", "TEXT"),
             ("source", "TEXT"), ("ctype", "TEXT"), ("level", "TEXT"),
+            ("user_agent", "TEXT"),
         ]:
             conn.execute(text(f"ALTER TABLE api_usage ADD COLUMN IF NOT EXISTS {col} {typ}"))
