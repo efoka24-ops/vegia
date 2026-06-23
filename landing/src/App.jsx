@@ -4,9 +4,10 @@ import Faq from './components/Faq.jsx';
 import ApiDocs from './components/ApiDocs.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
 
-// APK publié automatiquement par le workflow GitHub Actions "Build APK Android"
-// sur la release stable "mobile-latest". Disponible après le 1er run du workflow.
-const MOBILE_APK_URL = 'https://github.com/efoka24-ops/vegia/releases/download/mobile-latest/vigia.apk';
+// APK servi directement depuis le domaine (Vercel le télécharge depuis la
+// release "mobile-latest" au moment du build → fichier statique /vigia.apk).
+// Pas de redirection github.com visible pour l'utilisateur.
+const MOBILE_APK_URL = '/vigia.apk';
 
 const MODULES = [
   {

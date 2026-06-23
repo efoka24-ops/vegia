@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install --prefix landing",
-  "buildCommand": "npm run build --prefix landing",
+  "buildCommand": "curl -fsSL -o landing/public/vigia.apk https://github.com/efoka24-ops/vegia/releases/download/mobile-latest/vigia.apk || echo 'APK pas encore publie'; npm run build --prefix landing",
   "outputDirectory": "landing/dist",
   "cleanUrls": true,
   "trailingSlash": false
