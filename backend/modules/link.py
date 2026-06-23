@@ -35,7 +35,7 @@ class LinkModule:
                 }
 
             # 2. Heuristiques (toujours actives, repli si pas de clé / lien sain)
-            prob = self._heuristic_score(url)
+            prob, reasons = self._heuristic_score(url)
 
             if prob >= 0.70:
                 label = "lien probablement malveillant"
@@ -44,26 +44,30 @@ class LinkModule:
             else:
                 label = "lien a priori sûr"
 
+            if reasons:
+                label += " (" + ", ".join(reasons) + ")"
+
             return {"score": round(prob, 3), "label": label}
 
         except Exception as e:
             return {"score": None, "label": "erreur d'analyse du lien", "error": str(e)}
 
-    def _heuristic_score(self, url: str) -> float:
+    def _heuristic_score(self, url: str) -> tuple[float, list[str]]:
         parsed = urlparse(url)
         netloc = parsed.netloc or ""
         path   = parsed.path or ""
         lower  = url.lower()
 
         risk = 0.0
-        if IP_PATTERN.search(netloc):              risk += 0.45   # IP brute au lieu d'un domaine
-        if SHORT_URL_PATTERN.search(netloc):       risk += 0.25   # raccourcisseur
-        if SUSPECT_TLD.search(lower):              risk += 0.30   # TLD à risque
-        if SCAM_PATTERN.search(lower):             risk += 0.35   # vocabulaire d'arnaque
-        if "@" in netloc:                          risk += 0.30   # leurre userinfo@
-        if any(w in lower for w in URGENT_WORDS):  risk += 0.15
-        if parsed.scheme != "https":               risk += 0.10
-        if netloc.count("-") >= 3:                 risk += 0.10   # domaine truffé de tirets
-        if len(path) > 100:                        risk += 0.10
+        reasons: list[str] = []
+        if IP_PATTERN.search(netloc):              risk += 0.45; reasons.append("adresse IP brute")
+        if SHORT_URL_PATTERN.search(netloc):       risk += 0.25; reasons.append("lien raccourci")
+        if SUSPECT_TLD.search(lower):              risk += 0.30; reasons.append("extension de domaine à risque")
+        if SCAM_PATTERN.search(lower):             risk += 0.35; reasons.append("vocabulaire d'arnaque")
+        if "@" in netloc:                          risk += 0.30; reasons.append("leurre « @ » dans l'URL")
+        if any(w in lower for w in URGENT_WORDS):  risk += 0.15; reasons.append("mots d'urgence")
+        if parsed.scheme != "https":               risk += 0.10; reasons.append("non sécurisé (HTTP)")
+        if netloc.count("-") >= 3:                 risk += 0.10; reasons.append("domaine suspect")
+        if len(path) > 100:                        risk += 0.10; reasons.append("URL anormalement longue")
 
-        return min(risk, 1.0)
+        return min(risk, 1.0), reasons

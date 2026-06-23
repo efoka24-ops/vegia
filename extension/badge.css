@@ -97,6 +97,50 @@
 
 .vigia-opt-ic { font-size: 15px; line-height: 1; }
 
+/* ── Bouton persistant, ancré en bas de chaque post ──────────── */
+.vigia-postbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 12px;
+  padding: 6px 13px;
+  background: rgba(10,92,66,.10);
+  border: 1px solid rgba(10,92,66,.35);
+  border-radius: 99px;
+  color: var(--vig-green);
+  font: 700 12px/1 var(--vig-font);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s, transform .1s;
+}
+.vigia-postbar:hover {
+  background: rgba(10,92,66,.20);
+  transform: translateY(-1px);
+}
+.vigia-postbar svg path:first-child { fill: var(--vig-green); fill-opacity: 1; }
+.vigia-postbar svg path:last-child  { stroke: #fff; }
+
+/* ── Élément précis analysé (carte de résultat) ──────────────── */
+.vigia-result-target {
+  margin-top: 8px;
+  padding: 7px 9px;
+  background: rgba(0,0,0,.05);
+  border-left: 3px solid rgba(10,92,66,.5);
+  border-radius: 6px;
+  font: 600 11px/1.45 var(--vig-font);
+  color: #11201A;
+  word-break: break-word;
+}
+.vigia-result-target-lbl {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #888;
+  margin-bottom: 3px;
+  font-weight: 800;
+}
+
 /* ── État chargement ─────────────────────────────────────────── */
 @keyframes vigia-spin { to { transform: rotate(360deg); } }
 

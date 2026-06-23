@@ -186,6 +186,22 @@ function renderIdleBtn(postEl, ctxs) {
   FLOAT.appendChild(menu);
 }
 
+// Ouvre le menu VigIA à une position donnée (utilisé par le bouton persistant)
+function openMenuAt(postEl, x, y) {
+  clearTimeout(_hideT);
+  _post = postEl;
+  _hasResult = false;
+
+  const W = 300;
+  FLOAT.style.left  = Math.max(8, Math.min(x - W / 2, window.innerWidth - W - 8)) + 'px';
+  FLOAT.style.top   = Math.min(y, window.innerHeight - 170) + 'px';
+  FLOAT.style.width = W + 'px';
+
+  const ctxs = (postEl.dataset.vigiaCtxs || detectContexts(postEl).join(',')).split(',');
+  renderIdleBtn(postEl, ctxs);
+  FLOAT.classList.add('vigia-float--on');
+}
+
 function scheduleHide() {
   if (_hasResult) return;
   clearTimeout(_hideT);
@@ -256,10 +272,28 @@ function markPosts() {
     } catch (_) {}
   }
   posts.slice(0, 40).forEach(el => {
-    if (el.dataset.vigiaCtxs) return; // déjà marqué
     const ctxs = detectContexts(el);
-    if (ctxs.length) el.dataset.vigiaCtxs = ctxs.join(',');
+    el.dataset.vigiaCtxs = ctxs.join(',');
+    injectPostBar(el);
   });
+}
+
+// Bouton VigIA persistant, ancré en bas de chaque post (toujours visible).
+function injectPostBar(el) {
+  // Idempotent : ré-injecte si React a retiré notre bouton mais gardé l'élément
+  if (el.querySelector(':scope > .vigia-postbar')) return;
+  try {
+    const bar = document.createElement('div');
+    bar.className = 'vigia-postbar';
+    bar.innerHTML = `${SHIELD_SVG}<span>Vérifier avec VigIA</span>`;
+    bar.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      const r = bar.getBoundingClientRect();
+      openMenuAt(el, r.left + r.width / 2, r.bottom + 6);
+    });
+    el.appendChild(bar);
+  } catch (_) {}
 }
 
 // ── Lecture de la page (popup "Tout vérifier") ────────────────
@@ -323,7 +357,7 @@ function triggerAnalysis(postEl, context, cta) {
       setCtaError(cta, 'Erreur d\'analyse.');
       return;
     }
-    renderResult(cta, result, context);
+    renderResult(cta, result, context, payload.content);
     notifyPopup(context, result);
   });
 }
@@ -380,7 +414,19 @@ function setCtaError(cta, msg) {
   setTimeout(scheduleHide, 3000);
 }
 
-function renderResult(cta, result, context) {
+function targetLabel(context, content) {
+  if (!content) return '';
+  if (context === 'link')    return content.url || '';
+  if (context === 'account') return content.profile_name || '';
+  if (context === 'video')   return 'Vidéo de la publication';
+  if (context === 'text') {
+    const t = (content.text || '').trim();
+    return t.length > 160 ? t.slice(0, 160) + '…' : t;
+  }
+  return '';
+}
+
+function renderResult(cta, result, context, content) {
   const level  = result.level || 'error';
   const module = CTX_MODULE[context] || 'VÉRIF';
   const mods   = result.modules || {};
@@ -388,6 +434,8 @@ function renderResult(cta, result, context) {
   const score  = mod?.score != null ? Math.round(mod.score * 100) : null;
   const label  = mod?.label || result.explanation || '—';
   const detail = result.explanation && result.explanation !== mod?.label ? result.explanation : '';
+  const target = targetLabel(context, content);
+  const tgtLbl = { link: 'Lien analysé', account: 'Compte analysé', video: 'Média analysé', text: 'Texte analysé' }[context] || 'Élément analysé';
   const icons  = { red: '⚠️', orange: '⚠️', green: '✅', error: '❓' };
 
   cta.innerHTML = `
@@ -400,6 +448,7 @@ function renderResult(cta, result, context) {
       </div>
       <div class="vigia-result-label">${escHtml(label)}</div>
       ${detail ? `<div class="vigia-result-detail">${escHtml(detail)}</div>` : ''}
+      ${target ? `<div class="vigia-result-target"><span class="vigia-result-target-lbl">${tgtLbl}</span>${escHtml(target)}</div>` : ''}
       <button class="vigia-result-report">Signaler</button>
     </div>`;
 
