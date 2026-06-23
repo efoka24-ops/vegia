@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import Shield from './components/Shield.jsx';
 import Faq from './components/Faq.jsx';
+import ApiDocs from './components/ApiDocs.jsx';
 
 const MODULES = [
   {
@@ -44,6 +46,14 @@ const STEPS = [
 ];
 
 export default function App() {
+  const [route, setRoute] = useState(typeof window !== 'undefined' ? window.location.hash : '');
+  useEffect(() => {
+    const onHash = () => { setRoute(window.location.hash); window.scrollTo(0, 0); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const showApi = route === '#api';
+
   return (
     <>
       {/* NAV */}
@@ -56,11 +66,13 @@ export default function App() {
           <a href="#demo">Démo</a>
           <a href="#modules">Modules</a>
           <a href="#installer">Installer</a>
+          <a href="#api">API</a>
           <a href="#faq">FAQ</a>
           <a href="#installer" className="nav-cta">Télécharger →</a>
         </div>
       </nav>
 
+      {showApi ? <ApiDocs /> : (<>
       {/* HERO */}
       <section className="hero">
         <div className="hero-glow" />
@@ -209,6 +221,7 @@ export default function App() {
           <a href="#installer" className="btn btn-ghost btn-lg">↓ Télécharger l'extension</a>
         </div>
       </section>
+      </>)}
 
       {/* FOOTER */}
       <footer>
