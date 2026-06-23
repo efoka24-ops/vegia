@@ -328,6 +328,8 @@ document.addEventListener('mouseover', e => {
 
 // ── Pré-marquer les posts au chargement (accélère le premier survol) ─
 
+let _lastPostCount = -1;
+
 function markPosts() {
   if (!SITE) return;
   const selectors = POST_SELECTORS[SITE] || [];
@@ -342,6 +344,10 @@ function markPosts() {
   if (!posts.length) {
     try { posts = Array.from(document.querySelectorAll('article')); } catch (_) {}
   }
+  if (posts.length !== _lastPostCount) {
+    _lastPostCount = posts.length;
+    console.log('[VigIA]', SITE, '— posts détectés :', posts.length);
+  }
   posts.slice(0, 40).forEach(el => {
     const ctxs = detectContexts(el);
     el.dataset.vigiaCtxs = ctxs.join(',');
@@ -349,9 +355,15 @@ function markPosts() {
   });
 }
 
-// Bouton VigIA persistant, ancré en bas de chaque post (toujours visible).
+// Bouton VigIA persistant, ancré sous chaque post.
+// Inséré en FRÈRE du post (afterend) plutôt que dans le post : les SPA comme
+// LinkedIn/X re-rendent et vident leur sous-arbre, supprimant un enfant injecté.
+// Un frère survit à ces re-renders. Idempotent + ré-injection via MutationObserver.
 function injectPostBar(el) {
-  // Idempotent : ré-injecte si React a retiré notre bouton mais gardé l'élément
+  // Déjà un bouton juste après ce post ?
+  const sib = el.nextElementSibling;
+  if (sib && sib.classList && sib.classList.contains('vigia-postbar')) return;
+  // Ancienne injection enfant (compat) ?
   if (el.querySelector(':scope > .vigia-postbar')) return;
   try {
     const bar = mkEl('div', 'vigia-postbar');
@@ -362,8 +374,20 @@ function injectPostBar(el) {
       const r = bar.getBoundingClientRect();
       openMenuAt(el, r.left + r.width / 2, r.bottom + 6);
     });
-    el.appendChild(bar);
-  } catch (_) {}
+    // Frère du post (hors sous-arbre géré par le framework)
+    el.insertAdjacentElement('afterend', bar);
+  } catch (_) {
+    try {
+      const bar2 = mkEl('div', 'vigia-postbar');
+      bar2.append(makeShield(), mkEl('span', null, 'Vérifier avec VigIA'));
+      bar2.addEventListener('click', e => {
+        e.stopPropagation(); e.preventDefault();
+        const r = bar2.getBoundingClientRect();
+        openMenuAt(el, r.left + r.width / 2, r.bottom + 6);
+      });
+      el.appendChild(bar2);
+    } catch (__) {}
+  }
 }
 
 // ── Lecture de la page (popup "Tout vérifier") ────────────────
@@ -581,6 +605,7 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
 // ── Démarrage + MutationObserver ──────────────────────────────
 
 if (SITE) {
+  console.log('[VigIA] actif sur', SITE);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { try { markPosts(); } catch (_) {} });
   } else {
