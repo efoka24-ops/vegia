@@ -75,3 +75,10 @@ class UsageResponse(BaseModel):
     tier:          str
     monthly_quota: Optional[int] = None
     used_30d:      int
+
+
+class SendReportRequest(BaseModel):
+    to:      str
+    url:     Optional[str] = None
+    date:    Optional[str] = None
+    results: dict = {}

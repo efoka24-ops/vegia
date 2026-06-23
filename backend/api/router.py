@@ -1,15 +1,18 @@
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 
 from api.auth import verify_token, verify_admin
 from api.limiter import limiter
+from api.mailer import send_report
 from api import keys as keymgr
 from api.schemas import (
     VerifyRequest, VerifyResponse, BlacklistResponse,
     ReportRequest, ReportResponse,
     KeyCreateRequest, KeyCreateResponse, UsageResponse,
+    SendReportRequest,
 )
 from modules.media import MediaModule
 from modules.info import InfoModule
@@ -96,6 +99,18 @@ async def report(request: Request, body: ReportRequest):
         await add_to_blacklist(body.content_url, reason=body.reason or "signalement", reported_by="report")
 
     return ReportResponse(ok=True)
+
+
+@router.post("/send-report")
+@limiter.limit("5/minute")
+async def send_report_endpoint(request: Request, body: SendReportRequest):
+    if "@" not in body.to:
+        raise HTTPException(status_code=400, detail="Adresse email invalide")
+    try:
+        await run_in_threadpool(send_report, body.to, body.url, body.date, body.results)
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Envoi échoué : {e}")
 
 
 @router.get("/me", response_model=UsageResponse)
