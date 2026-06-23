@@ -184,11 +184,11 @@ async function main() {
   const nodemailer = require('nodemailer');
 
   const transporter = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST   || 'mx-dc03.ewodi.net',
+    host:   process.env.SMTP_HOST   || 'smtp.example.com',
     port:   parseInt(process.env.SMTP_PORT || '587'),
     secure: false,
     auth: {
-      user: process.env.SMTP_USER || 'infos@trugroup.cm',
+      user: process.env.SMTP_USER || 'user@example.com',
       pass: process.env.SMTP_PASS || '',
     },
     tls: { rejectUnauthorized: false },
@@ -205,7 +205,7 @@ async function main() {
 
   try {
     const info = await transporter.sendMail({
-      from:    `"${process.env.SMTP_NAME||'CM TRU GROUP'}" <${process.env.SMTP_USER||'infos@trugroup.cm'}>`,
+      from:    `"${process.env.SMTP_NAME||'CM TRU GROUP'}" <${process.env.SMTP_USER||'user@example.com'}>`,
       to:      testPayload.to,
       subject: 'VigIA — Rapport d\'analyse · Test',
       html,

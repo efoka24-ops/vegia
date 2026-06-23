@@ -25,16 +25,16 @@ let mailer = null;
 try {
   const nodemailer = require('nodemailer');
   mailer = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST || 'mx-dc03.ewodi.net',
+    host:   process.env.SMTP_HOST || 'smtp.example.com',
     port:   parseInt(process.env.SMTP_PORT || '587', 10),
     secure: false,
     auth: {
-      user: process.env.SMTP_USER || 'infos@trugroup.cm',
+      user: process.env.SMTP_USER || 'user@example.com',
       pass: process.env.SMTP_PASS || '',
     },
     tls: { rejectUnauthorized: false },
   });
-  console.log('  Mail SMTP    →  ' + (process.env.SMTP_HOST || 'mx-dc03.ewodi.net'));
+  console.log('  Mail SMTP    →  ' + (process.env.SMTP_HOST || 'smtp.example.com'));
 } catch (_) {
   console.warn('  ⚠ nodemailer absent — npm install nodemailer (pour l\'envoi de rapports)');
 }
@@ -232,7 +232,7 @@ async function handleSendReport(body) {
   const html = buildEmailHtml(to, url || '', date || new Date().toISOString(), results || {}, content || {});
 
   await mailer.sendMail({
-    from:    `"${process.env.SMTP_NAME || 'CM TRU GROUP'}" <${process.env.SMTP_USER || 'infos@trugroup.cm'}>`,
+    from:    `"${process.env.SMTP_NAME || 'CM TRU GROUP'}" <${process.env.SMTP_USER || 'user@example.com'}>`,
     to,
     subject: 'VigIA — Rapport d\'analyse',
     html,
