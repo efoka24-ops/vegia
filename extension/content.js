@@ -23,8 +23,19 @@ const POST_SELECTORS = {
   facebook:  ['div[role="article"]', 'div[data-pagelet^="FeedUnit"]', 'div[aria-posinset]'], // userContentWrapper et _5pcr sont obsolètes
   twitter:   ['article[data-testid="tweet"]', 'article'],
   whatsapp:  ['div.message-in', 'div.message-out', 'div[data-pre-plain-text]'],
-  linkedin:  ['div.feed-shared-update-v2', 'div.occludable-update', 'div[data-urn]'],
-  instagram: ['article', 'div[role="presentation"] article', 'section main article'],
+  linkedin:  [
+    'div.feed-shared-update-v2',
+    'div.fie-impression-container',
+    'div[data-urn^="urn:li:activity"]',
+    'div.update-components-update-v2',
+    'div.occludable-update',
+  ],
+  instagram: [
+    'article',
+    'div[role="presentation"] article',
+    'main article',
+    'div[style*="flex-direction"] > div > article',
+  ],
   youtube:   ['ytd-rich-item-renderer', 'ytd-video-renderer', 'ytd-compact-video-renderer', '#primary ytd-watch-flexy'],
   tiktok:    ['div[data-e2e="recommend-list-item-container"]', 'div[class*="DivItemContainerV2"]', 'article'],
   reddit:    ['shreddit-post', 'div[data-testid="post-container"]', 'article', 'div.Post'],
@@ -237,6 +248,14 @@ function findPostUnderCursor(target) {
       }
     } catch (_) {}
   }
+  // Repli générique
+  try {
+    const el = target.closest('article');
+    if (el) {
+      if (!el.dataset.vigiaCtxs) el.dataset.vigiaCtxs = detectContexts(el).join(',');
+      return el;
+    }
+  } catch (_) {}
   return null;
 }
 
@@ -270,6 +289,10 @@ function markPosts() {
       const els = Array.from(document.querySelectorAll(sel));
       if (els.length) { posts = els; break; }
     } catch (_) {}
+  }
+  // Repli générique si aucun sélecteur spécifique ne matche (DOM modifié par le site)
+  if (!posts.length) {
+    try { posts = Array.from(document.querySelectorAll('article')); } catch (_) {}
   }
   posts.slice(0, 40).forEach(el => {
     const ctxs = detectContexts(el);
