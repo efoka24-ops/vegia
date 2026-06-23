@@ -553,7 +553,11 @@ function renderResult(cta, result, context, content) {
   const header = mkEl('div', 'vigia-result-header');
   header.appendChild(mkEl('span', 'vigia-result-icon', icons[level] || '❓'));
   header.appendChild(mkEl('span', 'vigia-result-module', module));
-  if (score !== null) header.appendChild(mkEl('span', 'vigia-result-score', score + '%'));
+  if (score !== null) {
+    const s = mkEl('span', 'vigia-result-score', 'Risque ' + score + '%');
+    s.title = 'Indice de risque : 0 % = sûr, 100 % = très suspect';
+    header.appendChild(s);
+  }
   const closeBtn = mkEl('button', 'vigia-result-close', '✕');
   closeBtn.title = 'Fermer';
   header.appendChild(closeBtn);
@@ -566,6 +570,9 @@ function renderResult(cta, result, context, content) {
     t.appendChild(mkEl('span', 'vigia-result-target-lbl', tgtLbl));
     t.appendChild(document.createTextNode(target));
     box.appendChild(t);
+  }
+  if (score !== null) {
+    box.appendChild(mkEl('div', 'vigia-result-scale', 'Indice de risque — 0 % = sûr · 100 % = très suspect'));
   }
   const reportBtn = mkEl('button', 'vigia-result-report', 'Signaler');
   box.appendChild(reportBtn);
