@@ -328,6 +328,68 @@ footer a:hover { color: #7ab89a; }
 }
 .vf-input:focus { outline: none; border-color: var(--green); }
 
+/* ════════ BACK-OFFICE V2 (sidebar + graphiques) ════════ */
+.adm { display: flex; min-height: 100vh; background: #0b1510; }
+
+/* Login */
+.adm-login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.adm-login { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 13px; text-align: center;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 36px; }
+.adm-login-logo { font-size: 44px; }
+.adm-login h1 { font-family: var(--display); font-size: 22px; } .adm-login h1 span { color: var(--yellow); }
+.adm-login p { font-size: 13px; color: #7ab89a; }
+.adm-login input { padding: 12px 14px; border-radius: 10px; background: #0c1813; border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 14px; }
+
+/* Sidebar */
+.adm-side { width: 248px; flex-shrink: 0; background: #0e1c15; border-right: 1px solid rgba(255,255,255,.07);
+  display: flex; flex-direction: column; padding: 18px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.adm-brand { font-size: 20px; font-weight: 900; color: #fff; padding: 6px 10px 18px; display: flex; align-items: baseline; gap: 6px; }
+.adm-brand span { color: var(--yellow); } .adm-brand small { font-size: 11px; color: #4a7c5f; font-weight: 700; margin-left: 4px; }
+.adm-group { margin-bottom: 14px; }
+.adm-group-title { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: #4a7c5f; font-weight: 800; padding: 6px 10px; }
+.adm-link { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none;
+  color: #b6c9bf; padding: 9px 10px; border-radius: 9px; font: 600 13.5px var(--font); cursor: pointer; transition: background .12s, color .12s; }
+.adm-link:hover { background: rgba(255,255,255,.04); color: #fff; }
+.adm-link.on { background: rgba(10,92,66,.35); color: #fff; }
+.adm-ico { width: 20px; text-align: center; }
+.adm-logout { margin-top: auto; background: none; border: 1px solid rgba(255,255,255,.14); color: #94a3b8;
+  border-radius: 9px; padding: 9px; font-size: 12px; cursor: pointer; }
+
+/* Main */
+.adm-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.adm-topbar { display: flex; align-items: center; gap: 14px; padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,.07);
+  position: sticky; top: 0; background: rgba(11,21,16,.95); backdrop-filter: blur(10px); z-index: 5; }
+.adm-topbar strong { font-size: 16px; flex: 1; }
+.adm-back-link { font-size: 12px; color: #7ab89a; text-decoration: none; }
+.adm-burger { display: none; background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+.adm-content { padding: 26px 28px; max-width: 1150px; margin: 0 auto; width: 100%; }
+
+/* KPI */
+.adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.adm-kpi { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 18px 20px; }
+.adm-kpi-val { font-family: var(--display); font-size: 32px; font-weight: 800; line-height: 1; }
+.adm-kpi-lbl { font-size: 12px; color: #7ab89a; margin-top: 7px; }
+.adm-kpi-trend { font-size: 12px; font-weight: 700; margin-top: 6px; }
+
+/* Panels & charts */
+.adm-panel { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 20px; }
+.adm-legend { display: flex; gap: 18px; margin-top: 10px; font-size: 12px; color: #94a3b8; }
+.adm-legend span { display: flex; align-items: center; gap: 6px; }
+.adm-legend i, .adm-legend-row i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.adm-legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #c9d6cf; margin-bottom: 7px; text-transform: capitalize; }
+
+/* Alertes */
+.adm-alert { display: flex; align-items: center; gap: 10px; background: rgba(200,16,46,.08); border: 1px solid rgba(200,16,46,.25);
+  border-radius: 10px; padding: 12px 15px; margin-bottom: 8px; color: #fff; font-size: 14px; }
+.adm-alert-dot { width: 9px; height: 9px; border-radius: 50%; background: #f87171; animation: pulse 2s ease infinite; }
+.adm-alert-count { margin-left: auto; color: #f87171; font-weight: 700; font-size: 13px; }
+
+@media (max-width: 860px) {
+  .adm-side { position: fixed; left: -260px; z-index: 50; transition: left .2s; }
+  .adm--navopen .adm-side { left: 0; }
+  .adm-burger { display: block; }
+}
+
 @media (max-width: 780px) {
   nav { padding: 14px 20px; }
   .nav-links a:not(.nav-cta) { display: none; }

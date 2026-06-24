@@ -446,6 +446,8 @@ function getPageSummary() {
 // ── Analyse au clic ────────────────────────────────────────────
 
 function triggerAnalysis(postEl, context, cta) {
+  if (context === 'video') { triggerVideo(postEl, cta); return; }
+
   const payload = buildPayload(postEl, context);
   if (!payload) { setCtaError(cta, 'Contenu non lisible.'); return; }
 
@@ -458,6 +460,45 @@ function triggerAnalysis(postEl, context, cta) {
     }
     renderResult(cta, result, context, payload.content);
     notifyPopup(context, result);
+  });
+}
+
+// Capture quelques frames de la vidéo (best-effort ; échoue si cross-origin/tainted)
+async function captureFrames(videoEl, n = 3, gapMs = 350) {
+  if (!videoEl) return null;
+  const frames = [];
+  try {
+    for (let k = 0; k < n; k++) {
+      if (!videoEl.videoWidth) break;
+      const w = Math.min(videoEl.videoWidth, 512);
+      const h = Math.round(videoEl.videoHeight * (w / videoEl.videoWidth)) || 288;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(videoEl, 0, 0, w, h);
+      frames.push(canvas.toDataURL('image/jpeg', 0.8)); // lève une erreur si la vidéo est cross-origin
+      if (k < n - 1) await new Promise(r => setTimeout(r, gapMs));
+    }
+  } catch (_) {
+    return null; // vidéo protégée (cross-origin) — capture impossible
+  }
+  return frames.length ? frames : null;
+}
+
+async function triggerVideo(postEl, cta) {
+  setCtaLoading(cta);
+  const vid = postEl.querySelector('video');
+  const frames = await captureFrames(vid, 3);
+  if (!frames) {
+    setCtaError(cta, 'Vidéo protégée : capture impossible. Essayez sur une vidéo publique.');
+    return;
+  }
+  chrome.runtime.sendMessage({ type: 'VERIFY_FRAMES', payload: { frames } }, result => {
+    if (chrome.runtime.lastError || !result) {
+      setCtaError(cta, 'Erreur d\'analyse.');
+      return;
+    }
+    renderResult(cta, result, 'video', {});
+    notifyPopup('video', result);
   });
 }
 

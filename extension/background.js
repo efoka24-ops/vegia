@@ -47,7 +47,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendFeedback(message.payload).then(sendResponse);
     return true;
   }
+  if (message.type === 'VERIFY_FRAMES') {
+    verifyFrames(message.payload).then(sendResponse);
+    return true;
+  }
 });
+
+// ---------- Analyse vidéo (frames capturées) ----------
+
+function dataURLtoBlob(dataURL) {
+  const [meta, b64] = dataURL.split(',');
+  const mime = (meta.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+async function verifyFrames({ frames }) {
+  const settings = await getSettings();
+  if (settings.demoMode) return simulateAnalysis({ type: 'image' });
+  try {
+    const form = new FormData();
+    frames.forEach((d, i) => form.append('files', dataURLtoBlob(d), `frame${i}.jpg`));
+    const res = await fetch(`${settings.apiBase}/verify-frames`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${settings.token}`, 'X-Client-Id': settings.clientId },
+      body: form,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[VigIA] /verify-frames injoignable, repli simulation', err);
+    return simulateAnalysis({ type: 'image' });
+  }
+}
 
 // ---------- Boucle de feedback ----------
 
