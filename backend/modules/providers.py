@@ -94,28 +94,42 @@ async def safe_browsing_lookup(url: str) -> Optional[dict]:
 # --------------------------------------------------------------------------- #
 # Vérif-Média — Sightengine (détection deepfake / contenu généré par IA)
 # --------------------------------------------------------------------------- #
+def _sightengine_creds():
+    return os.getenv("SIGHTENGINE_USER"), os.getenv("SIGHTENGINE_SECRET")
+
+
 async def sightengine_check_image(image_url: str) -> Optional[float]:
     """Renvoie une probabilité [0,1] que l'image soit générée/manipulée par IA, ou None."""
-    user = os.getenv("SIGHTENGINE_USER")
-    secret = os.getenv("SIGHTENGINE_SECRET")
+    user, secret = _sightengine_creds()
     if not (user and secret):
         return None
-
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(
                 "https://api.sightengine.com/1.0/check.json",
-                params={
-                    "url": image_url,
-                    "models": "genai",
-                    "api_user": user,
-                    "api_secret": secret,
-                },
+                params={"url": image_url, "models": "genai", "api_user": user, "api_secret": secret},
             )
         resp.raise_for_status()
-        data = resp.json()
-        # Sightengine renvoie type.ai_generated dans [0,1]
-        return float(data.get("type", {}).get("ai_generated", 0.0))
+        return float(resp.json().get("type", {}).get("ai_generated", 0.0))
+    except Exception:
+        return None
+
+
+async def sightengine_check_image_bytes(data: bytes, filename: str, content_type: str) -> Optional[float]:
+    """Variante upload (pour les frames vidéo capturées côté client)."""
+    user, secret = _sightengine_creds()
+    if not (user and secret):
+        return None
+    try:
+        files = {"media": (filename or "frame.jpg", data, content_type or "image/jpeg")}
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            resp = await client.post(
+                "https://api.sightengine.com/1.0/check.json",
+                data={"models": "genai", "api_user": user, "api_secret": secret},
+                files=files,
+            )
+        resp.raise_for_status()
+        return float(resp.json().get("type", {}).get("ai_generated", 0.0))
     except Exception:
         return None
 

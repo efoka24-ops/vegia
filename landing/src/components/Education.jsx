@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const API = 'https://vegia-production.up.railway.app/api/v1';
 
 const LESSONS = [
   {
@@ -77,16 +79,29 @@ const QUIZ = [
 ];
 
 function Quiz() {
+  const [questions, setQuestions] = useState(null);
   const [i, setI] = useState(0);
   const [score, setScore] = useState(0);
   const [picked, setPicked] = useState(null);
   const [done, setDone] = useState(false);
 
+  useEffect(() => {
+    fetch(`${API}/public/quiz?n=8`)
+      .then(r => r.json())
+      .then(d => {
+        const qs = (d.questions || []).map(x => ({ q: x.question, options: x.options, answer: x.answer, explain: x.explain }));
+        setQuestions(qs.length ? qs : QUIZ);
+      })
+      .catch(() => setQuestions(QUIZ)); // repli sur la banque locale
+  }, []);
+
+  if (!questions) return <div className="edu-quiz"><p style={{ color: '#7ab89a' }}>Chargement du quiz…</p></div>;
+
   if (done) {
-    const pct = Math.round((score / QUIZ.length) * 100);
+    const pct = Math.round((score / questions.length) * 100);
     return (
       <div className="edu-quiz">
-        <h3 className="edu-quiz-title">Résultat : {score}/{QUIZ.length} ({pct}%)</h3>
+        <h3 className="edu-quiz-title">Résultat : {score}/{questions.length} ({pct}%)</h3>
         <p style={{ color: '#7ab89a', marginBottom: 16 }}>
           {pct >= 80 ? '🏆 Excellent ! Tu sais repérer les arnaques.'
             : pct >= 50 ? '👍 Pas mal — reste vigilant et révise les pièges.'
@@ -99,20 +114,20 @@ function Quiz() {
     );
   }
 
-  const cur = QUIZ[i];
+  const cur = questions[i];
   const choose = (idx) => {
     if (picked !== null) return;
     setPicked(idx);
     if (idx === cur.answer) setScore(s => s + 1);
   };
   const next = () => {
-    if (i + 1 >= QUIZ.length) setDone(true);
+    if (i + 1 >= questions.length) setDone(true);
     else { setI(i + 1); setPicked(null); }
   };
 
   return (
     <div className="edu-quiz">
-      <div className="edu-quiz-prog">Question {i + 1} / {QUIZ.length}</div>
+      <div className="edu-quiz-prog">Question {i + 1} / {questions.length}</div>
       <h3 className="edu-quiz-title">{cur.q}</h3>
       <div className="edu-options">
         {cur.options.map((o, idx) => {
@@ -128,7 +143,7 @@ function Quiz() {
         <>
           <p className="edu-explain">{picked === cur.answer ? '✅ Correct. ' : '❌ '}{cur.explain}</p>
           <button className="btn btn-primary btn-md" onClick={next}>
-            {i + 1 >= QUIZ.length ? 'Voir mon score' : 'Question suivante →'}
+            {i + 1 >= questions.length ? 'Voir mon score' : 'Question suivante →'}
           </button>
         </>
       )}

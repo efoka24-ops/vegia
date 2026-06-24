@@ -8,12 +8,13 @@ from api.auth import verify_token, verify_admin
 from api.limiter import limiter
 from api.mailer import send_report
 from api import keys as keymgr
+from api import admins as adminmod
 from api.schemas import (
     VerifyRequest, VerifyResponse, BlacklistResponse,
     ReportRequest, ReportResponse,
     KeyCreateRequest, KeyCreateResponse, UsageResponse,
     SendReportRequest, BlacklistAddRequest, OfficialAccountRequest,
-    FeedbackRequest, VerifiedRequest,
+    FeedbackRequest, VerifiedRequest, QuizQuestionRequest, AdminCreateRequest,
 )
 from modules.media import MediaModule
 from modules.info import InfoModule
@@ -120,6 +121,42 @@ async def verify_audio(
     )
 
 
+@router.post("/verify-frames", response_model=VerifyResponse)
+@limiter.limit("20/minute")
+async def verify_frames(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    auth: dict = Depends(verify_token),
+    x_client_id: str | None = Header(default=None),
+):
+    frames = []
+    for f in files[:6]:
+        data = await f.read()
+        if 0 < len(data) <= 6_000_000:
+            frames.append((data, f.filename or "frame.jpg", f.content_type or "image/jpeg"))
+
+    modules = {"media": await _media.analyze_frames(frames)}
+    score = _aggregate_score(modules)
+    level = _score_to_level(score)
+
+    fwd = request.headers.get("x-forwarded-for", "")
+    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+    background_tasks.add_task(
+        keymgr.record_event, auth["token"], "verify",
+        ip, x_client_id, "extension", "video", level, request.headers.get("user-agent"),
+    )
+
+    return VerifyResponse(
+        request_id=str(uuid.uuid4()),
+        score=score,
+        level=level,
+        modules=modules,
+        explanation=_build_explanation(modules, level),
+        sources=_collect_sources(modules),
+    )
+
+
 @router.get("/blacklist", response_model=BlacklistResponse)
 async def blacklist():
     entries = await get_blacklist_entries()
@@ -195,6 +232,12 @@ async def verified_check(request: Request, name: str):
     return adminmgr.check_verified(name)
 
 
+@router.get("/public/quiz")
+@limiter.limit("60/minute")
+async def public_quiz(request: Request, n: int = 8, domain: str | None = None):
+    return {"questions": adminmgr.get_quiz(min(n, 20), domain)}
+
+
 @router.get("/me", response_model=UsageResponse)
 async def me(auth: dict = Depends(verify_token)):
     return UsageResponse(
@@ -262,6 +305,48 @@ async def admin_verified_approve(req_id: int):
 @router.post("/admin/verified/{req_id}/reject", dependencies=[Depends(verify_admin)])
 async def admin_verified_reject(req_id: int):
     return {"rejected": adminmgr.reject_verified_request(req_id)}
+
+
+@router.get("/admin/dashboard", dependencies=[Depends(verify_admin)])
+async def admin_dashboard():
+    return adminmgr.get_dashboard()
+
+
+@router.get("/admin/alerts", dependencies=[Depends(verify_admin)])
+async def admin_alerts(threshold: int = 3):
+    return adminmgr.get_alerts(threshold)
+
+
+@router.get("/admin/quiz", dependencies=[Depends(verify_admin)])
+async def admin_quiz_list():
+    return {"questions": adminmgr.list_quiz()}
+
+
+@router.post("/admin/quiz", dependencies=[Depends(verify_admin)])
+async def admin_quiz_add(body: QuizQuestionRequest):
+    adminmgr.add_quiz(body.domain, body.question, body.options, body.answer, body.explain)
+    return {"ok": True}
+
+
+@router.delete("/admin/quiz/{qid}", dependencies=[Depends(verify_admin)])
+async def admin_quiz_delete(qid: int):
+    return {"deleted": adminmgr.delete_quiz(qid)}
+
+
+@router.get("/admin/admins", dependencies=[Depends(verify_admin)])
+async def admin_admins_list():
+    return {"admins": adminmod.list_admins()}
+
+
+@router.post("/admin/admins", dependencies=[Depends(verify_admin)])
+async def admin_admins_create(body: AdminCreateRequest):
+    token = adminmod.create_admin(body.username, body.role)
+    return {"username": body.username, "role": body.role, "token": token}
+
+
+@router.delete("/admin/admins/{admin_id}", dependencies=[Depends(verify_admin)])
+async def admin_admins_revoke(admin_id: int):
+    return {"revoked": adminmod.revoke_admin(admin_id)}
 
 
 @router.get("/admin/providers", dependencies=[Depends(verify_admin)])

@@ -109,3 +109,16 @@ class VerifiedRequest(BaseModel):
     category:     Optional[str] = None
     official_url: Optional[str] = None
     contact:      Optional[str] = None
+
+
+class QuizQuestionRequest(BaseModel):
+    domain:   Optional[str] = None
+    question: str
+    options:  list[str]
+    answer:   int
+    explain:  Optional[str] = None
+
+
+class AdminCreateRequest(BaseModel):
+    username: str
+    role:     str = "admin"

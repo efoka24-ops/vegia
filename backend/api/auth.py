@@ -32,10 +32,21 @@ async def verify_token(authorization: str = Header(...)) -> dict:
     return {"token": token, **info}
 
 
-async def verify_admin(authorization: str = Header(...)) -> bool:
-    admin = os.getenv("ADMIN_TOKEN")
-    if not admin:
-        raise HTTPException(status_code=503, detail="Administration désactivée (ADMIN_TOKEN absent)")
-    if not authorization.startswith("Bearer ") or authorization.removeprefix("Bearer ").strip() != admin:
+async def verify_admin(authorization: str = Header(...)) -> dict:
+    if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès administrateur requis")
-    return True
+    token = authorization.removeprefix("Bearer ").strip()
+
+    # Super-admin via variable d'environnement
+    env = os.getenv("ADMIN_TOKEN")
+    if env and token == env:
+        return {"username": "superadmin", "role": "superadmin"}
+
+    # Admins en base (multi-admins & rôles)
+    from api.admins import lookup_admin
+    info = lookup_admin(token)
+    if info:
+        return {"username": info["username"], "role": info["role"]}
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès administrateur requis")
+

@@ -25,6 +25,67 @@ def get_stats() -> dict:
     return out
 
 
+def get_dashboard() -> dict:
+    out = {"v24": 0, "v24_trend": None, "v7": 0, "v7_trend": None, "v30": 0,
+           "users": 0, "alerts": 0, "alert_rate": 0, "donut": [], "series": []}
+    try:
+        with get_db_connection() as conn:
+            def cnt(where):
+                return conn.execute(text(f"SELECT COUNT(*) FROM api_usage WHERE endpoint='verify' AND {where}")).scalar() or 0
+
+            out["v24"] = cnt("created_at > NOW() - INTERVAL '24 hours'")
+            v24p = cnt("created_at BETWEEN NOW() - INTERVAL '48 hours' AND NOW() - INTERVAL '24 hours'")
+            out["v7"] = cnt("created_at > NOW() - INTERVAL '7 days'")
+            v7p = cnt("created_at BETWEEN NOW() - INTERVAL '14 days' AND NOW() - INTERVAL '7 days'")
+            out["v30"] = cnt("created_at > NOW() - INTERVAL '30 days'")
+            out["alerts"] = cnt("level='red'")
+            total = cnt("TRUE")
+            out["users"] = conn.execute(text(
+                "SELECT COUNT(DISTINCT COALESCE(client_id, ip)) FROM api_usage WHERE endpoint='verify'"
+            )).scalar() or 0
+            out["alert_rate"] = round(100.0 * out["alerts"] / total, 1) if total else 0
+
+            def trend(cur, prev):
+                if not prev:
+                    return None
+                return round(100.0 * (cur - prev) / prev, 0)
+            out["v24_trend"] = trend(out["v24"], v24p)
+            out["v7_trend"] = trend(out["v7"], v7p)
+
+            out["donut"] = [
+                {"level": r[0] or "—", "count": r[1]}
+                for r in conn.execute(text(
+                    "SELECT level, COUNT(*) c FROM api_usage WHERE endpoint='verify' GROUP BY level"
+                )).fetchall()
+            ]
+            out["series"] = [
+                {"day": str(r[0]), "count": r[1], "alerts": r[2]}
+                for r in conn.execute(text(
+                    "SELECT (created_at AT TIME ZONE 'Africa/Douala')::date d, COUNT(*) c, "
+                    "COUNT(*) FILTER (WHERE level='red') a FROM api_usage "
+                    "WHERE endpoint='verify' AND created_at > NOW() - INTERVAL '14 days' GROUP BY d ORDER BY d"
+                )).fetchall()
+            ]
+    except Exception:
+        pass
+    return out
+
+
+def get_alerts(threshold: int = 3) -> dict:
+    out = {"threshold": threshold, "spikes": []}
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(text(
+                "SELECT city, country, COUNT(*) c FROM api_usage "
+                "WHERE endpoint='verify' AND level='red' AND created_at > NOW() - INTERVAL '24 hours' "
+                "AND city IS NOT NULL GROUP BY city, country HAVING COUNT(*) >= :t ORDER BY c DESC LIMIT 20"
+            ), {"t": threshold}).fetchall()
+        out["spikes"] = [{"city": r[0], "country": r[1], "alerts_24h": r[2]} for r in rows]
+    except Exception:
+        pass
+    return out
+
+
 def get_analytics() -> dict:
     out = {"unique_users": 0, "total_verifs": 0, "by_country": [], "by_platform": [],
            "by_level": [], "by_type": [], "by_city": [], "by_hour": [], "by_day": [], "recent": []}
@@ -151,6 +212,55 @@ def user_detail(uid: str, limit: int = 50) -> list[dict]:
         ]
     except Exception:
         return []
+
+
+def get_quiz(n: int = 8, domain: str | None = None) -> list[dict]:
+    try:
+        with get_db_connection() as conn:
+            if domain:
+                rows = conn.execute(text(
+                    "SELECT id, domain, question, options, answer, explain FROM quiz_questions "
+                    "WHERE active = TRUE AND domain = :d ORDER BY RANDOM() LIMIT :n"
+                ), {"d": domain, "n": n}).fetchall()
+            else:
+                rows = conn.execute(text(
+                    "SELECT id, domain, question, options, answer, explain FROM quiz_questions "
+                    "WHERE active = TRUE ORDER BY RANDOM() LIMIT :n"
+                ), {"n": n}).fetchall()
+        return [
+            {"id": r[0], "domain": r[1], "question": r[2], "options": r[3], "answer": r[4], "explain": r[5]}
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
+def list_quiz() -> list[dict]:
+    with get_db_connection() as conn:
+        rows = conn.execute(text(
+            "SELECT id, domain, question, options, answer, explain, active FROM quiz_questions ORDER BY id DESC"
+        )).fetchall()
+    return [
+        {"id": r[0], "domain": r[1], "question": r[2], "options": r[3], "answer": r[4], "explain": r[5], "active": r[6]}
+        for r in rows
+    ]
+
+
+def add_quiz(domain, question, options, answer, explain) -> None:
+    import json as _json
+    with get_db_connection() as conn:
+        conn.execute(text(
+            "INSERT INTO quiz_questions (domain, question, options, answer, explain) "
+            "VALUES (:d, :q, CAST(:o AS JSONB), :a, :e)"
+        ), {"d": domain, "q": question, "o": _json.dumps(options), "a": answer, "e": explain})
+        conn.commit()
+
+
+def delete_quiz(qid: int) -> bool:
+    with get_db_connection() as conn:
+        res = conn.execute(text("DELETE FROM quiz_questions WHERE id = :id"), {"id": qid})
+        conn.commit()
+    return res.rowcount > 0
 
 
 def save_feedback(request_id, level, ctype, source, correct, comment, client_id) -> None:

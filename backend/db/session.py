@@ -132,3 +132,37 @@ def _create_tables():
                 created_at   TIMESTAMPTZ DEFAULT NOW()
             )
         """))
+
+        # Banque de questions du quiz (CMS) — quiz dynamique
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS quiz_questions (
+                id         SERIAL PRIMARY KEY,
+                domain     TEXT,
+                question   TEXT NOT NULL,
+                options    JSONB NOT NULL,
+                answer     INTEGER NOT NULL,
+                explain    TEXT,
+                active     BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        if not (conn.execute(text("SELECT COUNT(*) FROM quiz_questions")).scalar() or 0):
+            import json as _json
+            from db.seed_quiz import QUIZ_SEED
+            for dom, q, opts, ans, expl in QUIZ_SEED:
+                conn.execute(text(
+                    "INSERT INTO quiz_questions (domain, question, options, answer, explain) "
+                    "VALUES (:d, :q, CAST(:o AS JSONB), :a, :e)"
+                ), {"d": dom, "q": q, "o": _json.dumps(opts), "a": ans, "e": expl})
+
+        # Administrateurs (multi-admins & rôles)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS admins (
+                id         SERIAL PRIMARY KEY,
+                username   TEXT NOT NULL UNIQUE,
+                token      TEXT NOT NULL,
+                role       TEXT DEFAULT 'admin',
+                active     BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
